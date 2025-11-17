@@ -12,9 +12,11 @@ import {
 import FilterBar from "./components/FilterBar";
 import BottomNav from "./components/BottomNav";
 import { useRouter } from "expo-router";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function EventFeed() {
   const router = useRouter();
+  useSafeAreaInsets(); // SafeAreaView handles padding; no extra offset needed
 
   const [selectedDay, setSelectedDay] = useState("Monday");
   const [searchQuery, setSearchQuery] = useState("");
@@ -35,13 +37,12 @@ export default function EventFeed() {
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    // simulate data reload; replace with real fetch if available
     await new Promise((res) => setTimeout(res, 800));
     setRefreshing(false);
   }, []);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       <FilterBar
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
@@ -89,13 +90,13 @@ export default function EventFeed() {
             handleRefresh();
           } else {
             setActiveTab(tab);
-            if (tab === 'events') router.replace('/EventFeed');
-            if (tab === 'tickets') router.push('/myTickets');
-            if (tab === 'social') router.push('/socialStudent');
+            if (tab === "events") router.replace("/EventFeed");
+            if (tab === "tickets") router.push("/myTickets");
+            if (tab === "social") router.push("/socialStudent");
           }
         }}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -103,7 +104,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#3c0303ff",
-    paddingTop: 40,
   },
   filterBar: {
     flexDirection: "row",

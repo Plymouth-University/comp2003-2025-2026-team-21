@@ -88,6 +88,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 6,
     elevation: 4,
+    position: 'relative',
+    zIndex: 3000,
+    overflow: 'visible', 
   },
   searchWrapper: {
     flex: 1,
@@ -111,6 +114,9 @@ const styles = StyleSheet.create({
     width: 150,
     marginLeft: 10,
     zIndex: 1000,
+    elevation: 6,
+    overflow: 'visible',
+    position: 'relative',
   },
   dropdown: {
     backgroundColor: 'rgba(255,255,255,0.12)',
@@ -121,7 +127,11 @@ const styles = StyleSheet.create({
     borderWidth: 0,
     borderRadius: 10,
     backgroundColor: 'rgba(0,0,0,0.6)',
-    elevation: 5,
-    zIndex: 1000,
+    elevation: 8,
+    zIndex: 2000,
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
   },
 });
