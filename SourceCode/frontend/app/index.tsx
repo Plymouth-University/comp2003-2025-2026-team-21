@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Alert,
   Switch,
+  ImageBackground,
 } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { useRouter } from "expo-router";
@@ -54,10 +55,16 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Welcome</Text>
+    <ImageBackground
+      source={require("../assets/images/Space.png")}
+      style={styles.container}
+      imageStyle={{ resizeMode: 'cover' }}
+    >
+      <View style={styles.overlay} pointerEvents="none" />
+      <View style={styles.content}>
+        <Text style={styles.title}>Welcome</Text>
 
-      <Text style={styles.label}>Enter email address</Text>
+        <Text style={styles.label}>Enter email address</Text>
       <TextInput
         style={styles.input}
         placeholder="johnsmith@email.com"
@@ -95,17 +102,27 @@ export default function LoginScreen() {
       <Text style={styles.signupText}>
         Not a user? <Text style={styles.link}>Create account here</Text>
       </Text>
-    </View>
+      </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    alignSelf: 'stretch',
+  },
+
+  content: {
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 30,
-    backgroundColor: "#fff",
+  },
+
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.25)",
   },
   title: {
     fontSize: 34,

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,9 +6,11 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  RefreshControl,
   Platform,
 } from "react-native";
-import DropDownPicker from "react-native-dropdown-picker";
+import FilterBar from "./components/FilterBar";
+import BottomNav from "./components/BottomNav";
 import { useRouter } from "expo-router";
 
 export default function EventFeed() {
@@ -17,6 +19,7 @@ export default function EventFeed() {
   const [selectedDay, setSelectedDay] = useState("Monday");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("events");
+  const [refreshing, setRefreshing] = useState(false);
 
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(selectedDay);
@@ -30,45 +33,36 @@ export default function EventFeed() {
     { label: "Sunday", value: "Sunday" },
   ]);
 
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    // simulate data reload; replace with real fetch if available
+    await new Promise((res) => setTimeout(res, 800));
+    setRefreshing(false);
+  }, []);
+
   return (
     <View style={styles.container}>
-      <View style={styles.filterBar}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search events..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholderTextColor="#999"
-        />
-
-        <View style={styles.dropdownWrapper}>
-          <DropDownPicker
-            open={open}
-            value={value}
-            items={items}
-            setOpen={setOpen}
-            setValue={(callback) => {
-              const val = callback(value);
-              setValue(val);
-              setSelectedDay(val ?? "Monday");
-            }}
-            setItems={setItems}
-            placeholder="Select a day"
-            style={styles.dropdown}
-            dropDownContainerStyle={styles.dropdownContainer}
-            textStyle={{ color: "#333", fontWeight: "500" }}
-            labelStyle={{ color: "#333" }}
-            listMode="SCROLLVIEW"
-            zIndex={1000}
-            zIndexInverse={1000}
-          />
-        </View>
-      </View>
+      <FilterBar
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        selectedValue={value}
+        onSelectValue={(val) => {
+          setValue(val);
+          setSelectedDay(val ?? "Monday");
+        }}
+        open={open}
+        setOpen={setOpen}
+        items={items}
+        setItems={setItems}
+      />
 
       <ScrollView
         style={styles.scrollArea}
         contentContainerStyle={{ paddingTop: 10, paddingBottom: 100 }}
         keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
       >
         <Text style={styles.sectionTitle}>Events on {selectedDay}</Text>
 
@@ -88,69 +82,19 @@ export default function EventFeed() {
         </View>
       </ScrollView>
 
-      <View style={styles.bottomNav}>
-        
-        <TouchableOpacity
-          onPress={() => {
-            setActiveTab("events");
-            router.replace("/EventFeed");
-          }}
-          style={[
-            styles.navButton,
-            activeTab === "events" && styles.navButtonActive,
-          ]}
-        >
-          <Text
-            style={[
-              styles.navButtonText,
-              activeTab === "events" && styles.navButtonTextActive,
-            ]}
-          >
-            Events
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => {
-            setActiveTab("tickets");
-            router.push("/myTickets");
-          }}
-          style={[
-            styles.navButton,
-            activeTab === "tickets" && styles.navButtonActive,
-          ]}
-        >
-          <Text
-            style={[
-              styles.navButtonText,
-              activeTab === "tickets" && styles.navButtonTextActive,
-            ]}
-          >
-            My Tickets
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => {
-            setActiveTab("social");
-            router.push("/socialStudent");
-          }}
-          style={[
-            styles.navButton,
-            activeTab === "social" && styles.navButtonActive,
-          ]}
-        >
-          <Text
-            style={[
-              styles.navButtonText,
-              activeTab === "social" && styles.navButtonTextActive,
-            ]}
-          >
-            Social
-          </Text>
-        </TouchableOpacity>
-
-      </View>
+      <BottomNav
+        activeTab={activeTab}
+        onTabPress={(tab) => {
+          if (tab === activeTab) {
+            handleRefresh();
+          } else {
+            setActiveTab(tab);
+            if (tab === 'events') router.replace('/EventFeed');
+            if (tab === 'tickets') router.push('/myTickets');
+            if (tab === 'social') router.push('/socialStudent');
+          }
+        }}
+      />
     </View>
   );
 }
@@ -158,29 +102,32 @@ export default function EventFeed() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#570909ff",
+    backgroundColor: "#3c0303ff",
     paddingTop: 40,
   },
   filterBar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#3e0202ff",
-    paddingHorizontal: 16,
-    paddingVertical: 30,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginVertical: 15,
+    marginHorizontal: 16,
+    borderRadius: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    elevation: 4,
     zIndex: 1000,
   },
   searchInput: {
     flex: 1,
-    backgroundColor: "#ffffffff",
+    backgroundColor: "rgba(255,255,255,0.12)",
     paddingHorizontal: 12,
     borderRadius: 10,
-    height: 45,
-    color: "#000",
+    height: 44,
+    color: "#fff",
     marginRight: 10,
   },
   dropdownWrapper: {
@@ -188,14 +135,14 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   dropdown: {
-    backgroundColor: "#ffffffff",
+    backgroundColor: "rgba(255,255,255,0.12)",
     borderWidth: 0,
     borderRadius: 10,
   },
   dropdownContainer: {
     borderWidth: 0,
     borderRadius: 10,
-    backgroundColor: "#939393ff",
+    backgroundColor: "rgba(0,0,0,0.6)",
     elevation: 5,
     zIndex: 1000,
   },
@@ -234,25 +181,31 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     borderTopWidth: 1,
     backgroundColor: "#3e0202ff",
-    padding: 20,
-    justifyContent: "space-around",
+    height: 64,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
   },
   navButton: {
     flex: 1,
     alignItems: "center",
-    paddingVertical: 10,
-    borderRadius: 10,
-    marginHorizontal: 4,
-    backgroundColor: "#E5E5E5",
+    justifyContent: "center",
+    height: "100%",
+    borderRadius: 0,
+    marginHorizontal: 0,
+    backgroundColor: "transparent",
   },
   navButtonActive: {
-    backgroundColor: "#007BFF",
+    backgroundColor: "#2e0101ff",
   },
   navButtonText: {
-    color: "#333",
+    color: "#555454ff",
     fontWeight: "600",
   },
   navButtonTextActive: {
     color: "#FFF",
+  },
+  navButtonSeparator: {
+    borderLeftWidth: 1,
+    borderLeftColor: "rgba(255,255,255,0.08)",
   },
 });
