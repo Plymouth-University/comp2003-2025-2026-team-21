@@ -16,7 +16,8 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 
 export default function EventFeed() {
   const router = useRouter();
-  useSafeAreaInsets(); // SafeAreaView handles padding; no extra offset needed
+  const insets = useSafeAreaInsets();
+  const topPadding = Math.max(insets.top + 8, 12); 
 
   const [selectedDay, setSelectedDay] = useState("Monday");
   const [searchQuery, setSearchQuery] = useState("");
@@ -42,7 +43,7 @@ export default function EventFeed() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+    <SafeAreaView style={[styles.container, { paddingTop: topPadding }]} edges={["top"]}>
       <FilterBar
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
