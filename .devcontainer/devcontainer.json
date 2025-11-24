@@ -1,0 +1,17 @@
+{
+  "name": "UniVerse Dev Environment",
+  "dockerFile": "Dockerfile",
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "forwardPorts": [3000, 5432, 19000, 19001, 19002],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Prisma.prisma",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  },
+  "remoteUser": "node"
+}

@@ -18,28 +18,42 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
 
+  // Load saved login credentials on mount
   useEffect(() => {
     const loadRememberedUser = async () => {
-      const storedEmail = await SecureStore.getItemAsync("userEmail");
-      const storedPassword = await SecureStore.getItemAsync("userPassword");
-      if (storedEmail && storedPassword) {
-        setEmail(storedEmail);
-        setPassword(storedPassword);
-        setRememberMe(true);
+      try {
+        const storedEmail = await SecureStore.getItemAsync("userEmail");
+        const storedPassword = await SecureStore.getItemAsync("userPassword");
+
+        if (storedEmail && storedPassword) {
+          setEmail(storedEmail);
+          setPassword(storedPassword);
+          setRememberMe(true);
+        }
+      } catch (error) {
+        console.error("Error loading remembered user:", error);
       }
     };
+
     loadRememberedUser();
   }, []);
 
+  // Login function
   const userLogin = async () => {
     if (!email || !password) {
       Alert.alert("Missing information", "Please fill in both fields.");
       return;
     }
 
-    if (email && password.length >= 6) {
-      Alert.alert("Login successful", `Welcome, ${email}!`);
+    if (password.length < 6) {
+      Alert.alert("Login failed", "Password must be at least 6 characters.");
+      return;
+    }
 
+    Alert.alert("Login successful", `Welcome, ${email}!`);
+
+    // Save or clear credentials based on toggle
+    try {
       if (rememberMe) {
         await SecureStore.setItemAsync("userEmail", email);
         await SecureStore.setItemAsync("userPassword", password);
@@ -47,61 +61,62 @@ export default function LoginScreen() {
         await SecureStore.deleteItemAsync("userEmail");
         await SecureStore.deleteItemAsync("userPassword");
       }
-
-      router.push("/EventFeed");
-    } else {
-      Alert.alert("Login failed", "Invalid credentials.");
+    } catch (error) {
+      console.error("Error saving login info:", error);
     }
+
+    router.push("/EventFeed");
   };
 
   return (
     <ImageBackground
       source={require("../assets/images/Space.png")}
       style={styles.container}
-      imageStyle={{ resizeMode: 'cover' }}
+      imageStyle={{ resizeMode: "cover" }}
     >
-      <View style={styles.overlay} pointerEvents="none" />
+      <View style={styles.overlay} />
+
       <View style={styles.content}>
         <Text style={styles.title}>Welcome</Text>
 
         <Text style={styles.label}>Enter email address</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="johnsmith@email.com"
-        placeholderTextColor="#b5b5b5"
-        keyboardType="email-address"
-        autoCapitalize="none"
-        value={email}
-        onChangeText={setEmail}
-      />
-
-      <Text style={styles.label}>Enter password</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Password123"
-        placeholderTextColor="#b5b5b5"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-
-      <View style={styles.rememberRow}>
-        <Switch
-          value={rememberMe}
-          onValueChange={setRememberMe}
-          trackColor={{ false: "#ccc", true: "#00c853" }}
-          thumbColor="#fff"
+        <TextInput
+          style={styles.input}
+          placeholder="johnsmith@email.com"
+          placeholderTextColor="#b5b5b5"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          value={email}
+          onChangeText={setEmail}
         />
-        <Text style={styles.rememberText}>Remember me</Text>
-      </View>
 
-      <TouchableOpacity style={styles.loginBtn} onPress={userLogin}>
-        <Text style={styles.loginText}>Login</Text>
-      </TouchableOpacity>
+        <Text style={styles.label}>Enter password</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Password123"
+          placeholderTextColor="#b5b5b5"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
 
-      <Text style={styles.signupText}>
-        Not a user? <Text style={styles.link}>Create account here</Text>
-      </Text>
+        <View style={styles.rememberRow}>
+          <Switch
+            value={rememberMe}
+            onValueChange={setRememberMe}
+            trackColor={{ false: "#ccc", true: "#00c853" }}
+            thumbColor="#fff"
+          />
+          <Text style={styles.rememberText}>Remember me</Text>
+        </View>
+
+        <TouchableOpacity style={styles.loginBtn} onPress={userLogin}>
+          <Text style={styles.loginText}>Login</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.signupText}>
+          Not a user? <Text style={styles.link}>Create account here</Text>
+        </Text>
       </View>
     </ImageBackground>
   );
@@ -110,16 +125,14 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignSelf: 'stretch',
+    alignSelf: "stretch",
   },
-
   content: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 30,
   },
-
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.25)",
@@ -128,6 +141,7 @@ const styles = StyleSheet.create({
     fontSize: 34,
     fontWeight: "bold",
     marginBottom: 40,
+    color: "#fff",
   },
   label: {
     alignSelf: "flex-start",
@@ -135,6 +149,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     fontSize: 16,
     fontWeight: "500",
+    color: "#fff",
   },
   input: {
     width: "100%",
@@ -155,7 +170,7 @@ const styles = StyleSheet.create({
   rememberText: {
     marginLeft: 10,
     fontSize: 15,
-    color: "#333",
+    color: "#fff",
   },
   loginBtn: {
     backgroundColor: "#00c853",
@@ -174,7 +189,7 @@ const styles = StyleSheet.create({
   signupText: {
     marginTop: 15,
     fontSize: 14,
-    color: "#555",
+    color: "#fff",
   },
   link: {
     color: "#7a46ff",
