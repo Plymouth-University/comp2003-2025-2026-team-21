@@ -99,7 +99,6 @@ export default function LoginScreen() {
       }
     } catch (err: any) {
       Alert.alert("Login failed", err.message || "Please try again.");
-      // IMPORTANT: no navigation here – failed logins stay on this screen
     } finally {
       setLoading(false);
     }
