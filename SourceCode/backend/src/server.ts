@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import authRoutes from "./routes/auth";
 import { PrismaClient } from "@prisma/client";
 
 dotenv.config();
@@ -10,6 +11,8 @@ app.use(cors());
 app.use(express.json());
 
 const prisma = new PrismaClient();
+
+app.use("/auth", authRoutes);
 
 app.get("/", (req, res) => {
   res.send("UniVerse backend is running 🚀");
@@ -30,3 +33,10 @@ app.get("/events", async (req, res) => {
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
+
+
+
+
+
+
+

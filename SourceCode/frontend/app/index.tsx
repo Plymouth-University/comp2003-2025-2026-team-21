@@ -8,17 +8,21 @@ import {
   Alert,
   Switch,
   ImageBackground,
+  ActivityIndicator,
 } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { useRouter } from "expo-router";
+
+const API_URL =
+  "https://glowing-space-meme-vx7j47j99gxf6xr9-3001.app.github.dev/auth";
 
 export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  // Load saved login credentials on mount
   useEffect(() => {
     const loadRememberedUser = async () => {
       try {
@@ -38,6 +42,30 @@ export default function LoginScreen() {
     loadRememberedUser();
   }, []);
 
+  // Call backend /auth/login
+  const loginRequest = async (email: string, password: string) => {
+    console.log("Calling backend:", `${API_URL}/login`);
+
+    const response = await fetch(`${API_URL}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await response.json();
+    console.log("Login response status:", response.status, "body:", data);
+
+    if (!response.ok) {
+      // backend sends { error: "..." }
+      throw new Error(data.error || "Login failed");
+    }
+
+    return data as {
+      token: string;
+      user: { id: string; email: string; role: string; name?: string };
+    };
+  };
+
   // Login function
   const userLogin = async () => {
     if (!email || !password) {
@@ -45,15 +73,16 @@ export default function LoginScreen() {
       return;
     }
 
-    if (password.length < 6) {
-      Alert.alert("Login failed", "Password must be at least 6 characters.");
-      return;
-    }
+    setLoading(true);
 
-    Alert.alert("Login successful", `Welcome, ${email}!`);
-
-    // Save or clear credentials based on toggle
     try {
+      // Real backend auth
+      const { token, user } = await loginRequest(email, password);
+
+      // Save JWT token
+      await SecureStore.setItemAsync("authToken", token);
+
+      // Save or clear credentials based on rememberMe toggle
       if (rememberMe) {
         await SecureStore.setItemAsync("userEmail", email);
         await SecureStore.setItemAsync("userPassword", password);
@@ -61,11 +90,20 @@ export default function LoginScreen() {
         await SecureStore.deleteItemAsync("userEmail");
         await SecureStore.deleteItemAsync("userPassword");
       }
-    } catch (error) {
-      console.error("Error saving login info:", error);
-    }
 
-    router.push("/EventFeed");
+      // Navigate based on role
+      if (user.role === "ORGANISATION") {
+        router.push("/EventFeed"); // adjust route if needed
+      } else {
+        router.push("/EventFeed");
+      }
+    } catch (err: any) {
+      console.error("Login failed:", err);
+      Alert.alert("Login failed", err.message || "Please try again.");
+      // IMPORTANT: no navigation here – failed logins stay on this screen
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -111,7 +149,11 @@ export default function LoginScreen() {
         </View>
 
         <TouchableOpacity style={styles.loginBtn} onPress={userLogin}>
-          <Text style={styles.loginText}>Login</Text>
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.loginText}>Login</Text>
+          )}
         </TouchableOpacity>
 
         <Text style={styles.signupText}>
