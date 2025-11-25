@@ -98,7 +98,6 @@ export default function LoginScreen() {
         router.push("/EventFeed");
       }
     } catch (err: any) {
-      console.error("Login failed:", err);
       Alert.alert("Login failed", err.message || "Please try again.");
       // IMPORTANT: no navigation here – failed logins stay on this screen
     } finally {
