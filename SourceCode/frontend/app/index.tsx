@@ -14,7 +14,7 @@ import * as SecureStore from "expo-secure-store";
 import { useRouter } from "expo-router";
 
 const API_URL =
-  "https://glowing-space-meme-vx7j47j99gxf6xr9-3001.app.github.dev/auth";
+  "https://bookish-chainsaw-jj49r95xvj9h5x7x-3001.app.github.dev/auth";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -42,7 +42,6 @@ export default function LoginScreen() {
     loadRememberedUser();
   }, []);
 
-  // Call backend /auth/login
   const loginRequest = async (email: string, password: string) => {
     console.log("Calling backend:", `${API_URL}/login`);
 
@@ -56,7 +55,6 @@ export default function LoginScreen() {
     console.log("Login response status:", response.status, "body:", data);
 
     if (!response.ok) {
-      // backend sends { error: "..." }
       throw new Error(data.error || "Login failed");
     }
 
@@ -155,8 +153,11 @@ export default function LoginScreen() {
         </TouchableOpacity>
 
         <Text style={styles.signupText}>
-          Not a user? <Text style={styles.link}>Create account here</Text>
-        </Text>
+  Not a user? Create account{" "}
+  <Text style={styles.link} onPress={() => router.push("/registerStudent")}>
+    here
+  </Text>
+</Text>
       </View>
     </ImageBackground>
   );

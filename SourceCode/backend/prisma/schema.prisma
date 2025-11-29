@@ -4,6 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+    url = env("DATABASE_URL")
 }
 
 
@@ -33,4 +34,5 @@ model Event {
 enum Role {
   STUDENT
   ORGANISATION
+  ADMIN
 }

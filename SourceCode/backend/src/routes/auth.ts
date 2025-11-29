@@ -12,23 +12,22 @@ if (!JWT_SECRET) {
   console.warn("⚠️ JWT_SECRET is not set in environment variables");
 }
 
-// Types for JWT payload if you want to reuse it
 interface JwtPayload {
   id: string;
   email: string;
   role: string;
 }
 
-// REGISTER -------------------------------------------------
 router.post("/register", async (req: Request, res: Response) => {
   const { email, password, role, name } = req.body;
 
-  if (!email || !password) {
-    return res.status(400).json({ error: "Missing email or password" });
+  if (!email || !password || !name) {
+    return res.status(400).json({ error: "Missing email, password, or name" });
   }
 
   try {
     const existingUser = await prisma.user.findUnique({ where: { email } });
+
     if (existingUser) {
       return res.status(400).json({ error: "User already exists" });
     }
@@ -44,8 +43,19 @@ router.post("/register", async (req: Request, res: Response) => {
       },
     });
 
+    if (!JWT_SECRET) {
+      return res.status(500).json({ error: "JWT secret not configured" });
+    }
+
+    // auto-login token after register
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role } as JwtPayload,
+      JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
     return res.status(201).json({
-      message: "User created",
+      token, //frontend needs this
       user: {
         id: user.id,
         email: user.email,
@@ -59,7 +69,7 @@ router.post("/register", async (req: Request, res: Response) => {
   }
 });
 
-// LOGIN -------------------------------------------------
+// login
 router.post("/login", async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
@@ -101,10 +111,7 @@ router.post("/login", async (req: Request, res: Response) => {
   }
 });
 
-
-
-
-// ME (CURRENT USER) ----------------------------------------
+// me (current user)
 router.get("/me", authMiddleware, async (req: Request, res: Response) => {
   try {
     const decoded = (req as any).user as JwtPayload | undefined;
@@ -112,8 +119,6 @@ router.get("/me", authMiddleware, async (req: Request, res: Response) => {
     if (!decoded || !decoded.id) {
       return res.status(401).json({ error: "Unauthenticated" });
     }
-
-  
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
