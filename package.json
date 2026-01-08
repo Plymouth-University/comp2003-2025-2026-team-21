@@ -1,5 +1,19 @@
 {
+  "name": "universe",
+  "private": true,
+  "scripts": {
+    "install:all": "npm run install:frontend && npm run install:backend",
+    "install:frontend": "cd SourceCode/frontend && npm install",
+    "install:backend": "cd SourceCode/backend && npm install",
+
+    "frontend": "cd SourceCode/frontend && npx expo start",
+    "frontend:tunnel": "cd SourceCode/frontend && npx expo start --tunnel",
+    "backend": "cd SourceCode/backend && npm run dev",
+
+    "dev": "concurrently -n FRONTEND,BACKEND -c auto \"npm run frontend\" \"npm run backend\"",
+    "dev:tunnel": "concurrently -n FRONTEND,BACKEND -c auto \"npm run frontend:tunnel\" \"npm run backend\""
+  },
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.0.0"
   }
 }
