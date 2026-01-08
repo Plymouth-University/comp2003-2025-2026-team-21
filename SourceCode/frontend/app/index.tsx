@@ -12,9 +12,7 @@ import {
 } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { useRouter } from "expo-router";
-
-const API_URL =
-  "https://bookish-chainsaw-jj49r95xvj9h5x7x-3001.app.github.dev/auth";
+import { API_URL } from "../lib/api";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -34,28 +32,39 @@ export default function LoginScreen() {
           setPassword(storedPassword);
           setRememberMe(true);
         }
-      } catch (error) {
-        console.error("Error loading remembered user:", error);
-      }
+      } catch {}
     };
 
     loadRememberedUser();
   }, []);
 
   const loginRequest = async (email: string, password: string) => {
-    console.log("Calling backend:", `${API_URL}/login`);
+    const url = `${API_URL}/auth/login`;
+    console.log("Calling backend:", url);
 
-    const response = await fetch(`${API_URL}/login`, {
+    const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
 
-    const data = await response.json();
-    console.log("Login response status:", response.status, "body:", data);
+    const raw = await response.text();
+
+    let data: any = null;
+    if (raw) {
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        throw new Error(`Non-JSON response (HTTP ${response.status})`);
+      }
+    }
 
     if (!response.ok) {
-      throw new Error(data.error || "Login failed");
+      throw new Error(data?.error || data?.message || `Login failed (HTTP ${response.status})`);
+    }
+
+    if (!data?.token || !data?.user) {
+      throw new Error("Login response missing token/user");
     }
 
     return data as {
@@ -64,7 +73,6 @@ export default function LoginScreen() {
     };
   };
 
-  // Login function
   const userLogin = async () => {
     if (!email || !password) {
       Alert.alert("Missing information", "Please fill in both fields.");
@@ -74,29 +82,25 @@ export default function LoginScreen() {
     setLoading(true);
 
     try {
-      // Real backend auth
-      const { token, user } = await loginRequest(email, password);
+      const { token, user } = await loginRequest(email.trim(), password);
 
-      // Save JWT token
       await SecureStore.setItemAsync("authToken", token);
 
-      // Save or clear credentials based on rememberMe toggle
       if (rememberMe) {
-        await SecureStore.setItemAsync("userEmail", email);
+        await SecureStore.setItemAsync("userEmail", email.trim());
         await SecureStore.setItemAsync("userPassword", password);
       } else {
         await SecureStore.deleteItemAsync("userEmail");
         await SecureStore.deleteItemAsync("userPassword");
       }
 
-      // Navigate based on role
       if (user.role === "ORGANISATION") {
-        router.push("/EventFeed"); // adjust route if needed
+        router.push("/EventFeed");
       } else {
         router.push("/EventFeed");
       }
     } catch (err: any) {
-      Alert.alert("Login failed", err.message || "Please try again.");
+      Alert.alert("Login failed", err?.message || "Please try again.");
     } finally {
       setLoading(false);
     }
@@ -144,20 +148,16 @@ export default function LoginScreen() {
           <Text style={styles.rememberText}>Remember me</Text>
         </View>
 
-        <TouchableOpacity style={styles.loginBtn} onPress={userLogin}>
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.loginText}>Login</Text>
-          )}
+        <TouchableOpacity style={styles.loginBtn} onPress={userLogin} disabled={loading}>
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.loginText}>Login</Text>}
         </TouchableOpacity>
 
         <Text style={styles.signupText}>
-  Not a user? Create account{" "}
-  <Text style={styles.link} onPress={() => router.push("/registerStudent")}>
-    here
-  </Text>
-</Text>
+          Not a user? Create account{" "}
+          <Text style={styles.link} onPress={() => router.push("/registerStudent")}>
+            here
+          </Text>
+        </Text>
       </View>
     </ImageBackground>
   );
