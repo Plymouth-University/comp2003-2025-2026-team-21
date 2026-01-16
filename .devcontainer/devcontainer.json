@@ -1,7 +1,7 @@
 {
   "name": "UniVerse Dev Environment",
   "dockerFile": "Dockerfile",
-  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "postCreateCommand": "npm install && npm run install:all",
   "forwardPorts": [3000, 5432, 19000, 19001, 19002],
   "customizations": {
     "vscode": {

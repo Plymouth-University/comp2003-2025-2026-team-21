@@ -2,16 +2,12 @@
   "name": "universe",
   "private": true,
   "scripts": {
-    "install:all": "npm run install:frontend && npm run install:backend",
-    "install:frontend": "cd SourceCode/frontend && npm install",
-    "install:backend": "cd SourceCode/backend && npm install",
-
+    "env:init": "bash scripts/init-env.sh",
+    "install:all": "npm run env:init && cd SourceCode/frontend && npm install && cd ../backend && npm install",
     "frontend": "cd SourceCode/frontend && npx expo start",
     "frontend:tunnel": "cd SourceCode/frontend && npx expo start --tunnel",
     "backend": "cd SourceCode/backend && npm run dev",
-
-    "dev": "concurrently -n FRONTEND,BACKEND -c auto \"npm run frontend\" \"npm run backend\"",
-    "dev:tunnel": "concurrently -n FRONTEND,BACKEND -c auto \"npm run frontend:tunnel\" \"npm run backend\""
+    "dev:tunnel": "concurrently -n BACKEND,FRONTEND -c auto \"npm run backend\" \"npm run frontend:tunnel\""
   },
   "devDependencies": {
     "concurrently": "^9.0.0"
