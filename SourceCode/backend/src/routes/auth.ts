@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { authMiddleware } from "../middleware/authMiddleware";
@@ -19,15 +19,31 @@ interface JwtPayload {
 }
 
 router.post("/register", async (req: Request, res: Response) => {
-  const { email, password, role, name } = req.body;
+  const rawEmail = req.body?.email;
+  const rawPassword = req.body?.password;
+  const rawRole = req.body?.role;
+  const rawName = req.body?.name;
 
-  if (!email || !password || !name) {
-    return res.status(400).json({ error: "Missing email, password, or name" });
+  const email =
+    typeof rawEmail === "string" ? rawEmail.trim().toLowerCase() : "";
+
+  const password =
+    typeof rawPassword === "string" ? rawPassword : "";
+
+  const name =
+    typeof rawName === "string" && rawName.trim().length > 0
+      ? rawName.trim()
+      : "Student";
+
+  const role: Role =
+    rawRole === Role.ORGANISATION ? Role.ORGANISATION : Role.STUDENT;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: "Missing email or password" });
   }
 
   try {
     const existingUser = await prisma.user.findUnique({ where: { email } });
-
     if (existingUser) {
       return res.status(400).json({ error: "User already exists" });
     }
@@ -38,7 +54,7 @@ router.post("/register", async (req: Request, res: Response) => {
       data: {
         email,
         password: hashedPassword,
-        role: role || "STUDENT",
+        role,
         name,
       },
     });
@@ -47,7 +63,6 @@ router.post("/register", async (req: Request, res: Response) => {
       return res.status(500).json({ error: "JWT secret not configured" });
     }
 
-    // auto-login token after register
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role } as JwtPayload,
       JWT_SECRET,
@@ -55,7 +70,7 @@ router.post("/register", async (req: Request, res: Response) => {
     );
 
     return res.status(201).json({
-      token, //frontend needs this
+      token,
       user: {
         id: user.id,
         email: user.email,
@@ -69,18 +84,22 @@ router.post("/register", async (req: Request, res: Response) => {
   }
 });
 
-// login
 router.post("/login", async (req: Request, res: Response) => {
-  const { email, password } = req.body;
+  const rawEmail = req.body?.email;
+  const rawPassword = req.body?.password;
 
-  if (!email || !password)
+  const email =
+    typeof rawEmail === "string" ? rawEmail.trim().toLowerCase() : "";
+
+  const password =
+    typeof rawPassword === "string" ? rawPassword : "";
+
+  if (!email || !password) {
     return res.status(400).json({ error: "Missing credentials" });
+  }
 
   try {
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
-
+    const user = await prisma.user.findUnique({ where: { email } });
     if (!user) return res.status(404).json({ error: "User not found" });
 
     const isValid = await bcrypt.compare(password, user.password);
@@ -111,7 +130,6 @@ router.post("/login", async (req: Request, res: Response) => {
   }
 });
 
-// me (current user)
 router.get("/me", authMiddleware, async (req: Request, res: Response) => {
   try {
     const decoded = (req as any).user as JwtPayload | undefined;

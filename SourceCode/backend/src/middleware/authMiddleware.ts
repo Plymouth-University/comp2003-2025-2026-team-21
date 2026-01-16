@@ -30,7 +30,7 @@ export const authMiddleware = (
       process.env.JWT_SECRET!
     ) as JwtPayload;
 
-    req.user = decoded;
+(req as any).user = decoded;
     next();
   } catch (err: any) {
     if (err.name === "TokenExpiredError") {
