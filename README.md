@@ -131,6 +131,7 @@ comp2003-2025-2026-team-21/
    - Press `w` for web
 
 8. **Make 3001 Port Public if Need Be**
+
         -Right Click on Port 
         -Port Visability
         -Select Public
