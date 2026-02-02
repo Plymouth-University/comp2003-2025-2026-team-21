@@ -51,6 +51,9 @@ interface JwtPayload {
  * - Accepts multipart/form-data with an 'image' field
  * - Stores the image in the user's profileImage field
  * - Returns success message with image metadata
+ * 
+ * Note: This endpoint should be rate-limited in production to prevent abuse.
+ * Consider adding express-rate-limit middleware for production deployments.
  */
 router.post(
   "/upload-image",

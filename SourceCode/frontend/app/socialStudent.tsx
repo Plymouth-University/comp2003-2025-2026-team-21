@@ -10,6 +10,7 @@ import {
   Alert,
 } from "react-native";
 import * as ImagePicker from 'expo-image-picker';
+import * as SecureStore from 'expo-secure-store';
 import FilterBar from "./components/FilterBar";
 import BottomNav from "./components/BottomNav";
 import { useRouter } from "expo-router";
@@ -76,12 +77,21 @@ export default function SocialStudent() {
           type: type,
         } as any);
 
+        // Get auth token from secure storage
+        const token = await SecureStore.getItemAsync('authToken');
+        
+        if (!token) {
+          Alert.alert("Error", "You must be logged in to upload images");
+          return;
+        }
+
         // Upload to backend
         const response = await fetch(`${API_URL}/api/upload-image`, {
           method: 'POST',
           body: formData,
           headers: {
             'Content-Type': 'multipart/form-data',
+            'Authorization': `Bearer ${token}`,
           },
         });
         
