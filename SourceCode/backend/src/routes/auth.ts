@@ -49,19 +49,24 @@ interface JwtPayload {
  * - Returns token + safe user fields
  */
 router.post("/register", async (req: Request, res: Response) => {
-  const { email, password, role, name } = req.body;
+  const { email, username, password, role, name } = req.body;
 
   // Basic validation - stop early if required fields missing
-  if (!email || !password || !name) {
-    return res.status(400).json({ error: "Missing email, password, or name" });
+  if (!email || !username || !password || !name) {
+    return res.status(400).json({ error: "Missing email, username, password, or name" });
   }
 
   try {
-    // Check if email is already taken
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    // Check if email or username is already taken
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [{ email }, { username }],
+      },
+    });
 
     if (existingUser) {
-      return res.status(400).json({ error: "User already exists" });
+      const field = existingUser.email === email ? "Email" : "Username";
+      return res.status(400).json({ error: `${field} already exists` });
     }
 
     // Hash password for secure storage
@@ -71,6 +76,7 @@ router.post("/register", async (req: Request, res: Response) => {
     const user = await prisma.user.create({
       data: {
         email,
+        username,
         password: hashedPassword,
         role: role || "STUDENT", // default role
         name,
@@ -98,6 +104,7 @@ router.post("/register", async (req: Request, res: Response) => {
       user: {
         id: user.id,
         email: user.email,
+        username: user.username,
         role: user.role,
         name: user.name,
       },

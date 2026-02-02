@@ -50,16 +50,28 @@ export function PostsProvider({ children }: { children: ReactNode }) {
   ]);
 
   const addPost = (caption: string, imageUri: string) => {
-    const newPost: Post = {
-      id: Date.now().toString(),
-      username: "You", // Replace with actual username when auth is implemented
-      caption,
-      imageUri,
-      liked: false,
-      timestamp: Date.now(),
+    // Get username from SecureStore if available
+    const getUsername = async () => {
+      try {
+        const { default: SecureStore } = await import("expo-secure-store");
+        return await SecureStore.getItemAsync("username");
+      } catch {
+        return null;
+      }
     };
 
-    setPosts((prev) => [newPost, ...prev]);
+    getUsername().then((storedUsername) => {
+      const newPost: Post = {
+        id: Date.now().toString(),
+        username: storedUsername || "You",
+        caption,
+        imageUri,
+        liked: false,
+        timestamp: Date.now(),
+      };
+
+      setPosts((prev) => [newPost, ...prev]);
+    });
   };
 
   const toggleLike = (id: string) => {

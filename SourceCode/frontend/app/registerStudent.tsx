@@ -17,6 +17,7 @@ export default function RegisterStudent() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -27,7 +28,7 @@ export default function RegisterStudent() {
   const isStrongPassword = (value: string) =>
     value.length >= 8 && /\d/.test(value);
 
-  const registerRequest = async (emailValue: string, passwordValue: string) => {
+  const registerRequest = async (emailValue: string, usernameValue: string, passwordValue: string) => {
     const url = `${API_URL}/auth/register`;
     console.log("Calling backend:", url);
 
@@ -37,6 +38,7 @@ export default function RegisterStudent() {
       body: JSON.stringify({
         name: "Student",
         email: emailValue,
+        username: usernameValue,
         password: passwordValue,
         role: "STUDENT",
       }),
@@ -65,14 +67,15 @@ export default function RegisterStudent() {
 
     return data as {
       token: string;
-      user: { id: string; email: string; role: string; name?: string };
+      user: { id: string; email: string; username: string; role: string; name?: string };
     };
   };
 
   const handleRegister = async () => {
     const trimmedEmail = email.trim();
+    const trimmedUsername = username.trim();
 
-    if (!trimmedEmail || !password || !confirmPassword) {
+    if (!trimmedEmail || !trimmedUsername || !password || !confirmPassword) {
       Alert.alert("Missing Fields", "Please fill in all fields.");
       return;
     }
@@ -81,6 +84,22 @@ export default function RegisterStudent() {
       Alert.alert(
         "Invalid Email",
         "You must use a valid @students.plymouth.ac.uk email address."
+      );
+      return;
+    }
+
+    if (trimmedUsername.length < 3) {
+      Alert.alert(
+        "Invalid Username",
+        "Username must be at least 3 characters long."
+      );
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(trimmedUsername)) {
+      Alert.alert(
+        "Invalid Username",
+        "Username can only contain letters, numbers, and underscores."
       );
       return;
     }
@@ -101,9 +120,10 @@ export default function RegisterStudent() {
     setLoading(true);
 
     try {
-      const { token } = await registerRequest(trimmedEmail, password);
+      const { token, user } = await registerRequest(trimmedEmail, trimmedUsername, password);
 
       await SecureStore.setItemAsync("authToken", token);
+      await SecureStore.setItemAsync("username", user.username);
 
       Alert.alert("Success", "Account created successfully!");
       router.replace("/EventFeed");
@@ -124,6 +144,16 @@ export default function RegisterStudent() {
 
       <View style={styles.content}>
         <Text style={styles.title}>Create Account</Text>
+
+        <Text style={styles.label}>Username</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Choose a username"
+          placeholderTextColor="#b5b5b5"
+          autoCapitalize="none"
+          value={username}
+          onChangeText={setUsername}
+        />
 
         <Text style={styles.label}>Student Email</Text>
         <TextInput

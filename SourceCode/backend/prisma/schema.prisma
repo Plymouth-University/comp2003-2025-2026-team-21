@@ -4,31 +4,44 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-    url = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
-
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  role      Role     @default(STUDENT)
-  name      String?
-  createdAt DateTime @default(now())
-
-  events    Event[]
+  id                   String   @id @default(uuid())
+  email                String   @unique
+  username             String   @unique
+  password             String
+  role                 Role     @default(STUDENT)
+  name                 String?
+  createdAt            DateTime @default(now())
+  profileImage         Bytes?
+  profileImageMimeType String?
+  events               Event[]
+  Posts                Posts[]
 }
 
 model Event {
-  id          String   @id @default(uuid())
-  title       String
-  description String
-  date        DateTime
-  location    String
-  createdAt   DateTime @default(now())
+  id                 String   @id @default(uuid())
+  title              String
+  description        String
+  date               DateTime
+  location           String
+  createdAt          DateTime @default(now())
+  organiserId        String
+  eventImage         Bytes?
+  eventImageMimeType String?
+  organiser          User     @relation(fields: [organiserId], references: [id])
+}
 
-  organiser   User     @relation(fields: [organiserId], references: [id])
-  organiserId String
+model Posts {
+  id            String   @id(map: "Post_pkey")
+  caption       String
+  image         Bytes
+  imageMimeType String
+  createdAt     DateTime @default(now())
+  authorId      String
+  User          User     @relation(fields: [authorId], references: [id], map: "Post_authorId_fkey")
 }
 
 enum Role {

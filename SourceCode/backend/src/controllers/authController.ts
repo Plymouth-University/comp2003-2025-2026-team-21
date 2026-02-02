@@ -22,14 +22,19 @@ const JWT_SECRET = process.env.JWT_SECRET!;
 export const register = async (req: Request, res: Response) => {
   try {
     // Data the client sends in POST body
-    const { email, password, role } = req.body;
+    const { email, username, password, role } = req.body;
 
     // 1) Does this user already exist?
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [{ email }, { username }],
+      },
+    });
 
     // If yes: stop and return 400 Bad Request
     if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
+      const field = existingUser.email === email ? "Email" : "Username";
+      return res.status(400).json({ message: `${field} already exists` });
     }
 
     // 2) Hash password using bcrypt.
@@ -40,17 +45,27 @@ export const register = async (req: Request, res: Response) => {
     const newUser = await prisma.user.create({
       data: {
         email,
+        username,
         password: hashedPassword, // store the HASH, not the raw password
         role: role || "STUDENT",  // default role if not provided
       },
     });
 
-    /**
-     *  SECURITY NOTE:
-     * Returning `newUser` can include the hashed password, depending on your Prisma schema.
-     * Best practice is to return only safe fields (id/email/role/etc).
-     */
-    return res.status(201).json({ message: "User created", user: newUser });
+    // 4) Create JWT token for immediate login
+    const token = jwt.sign(
+      { id: newUser.id, role: newUser.role },
+      JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    // Remove password from response
+    const { password: _, ...userWithoutPassword } = newUser;
+
+    return res.status(201).json({ 
+      message: "User created", 
+      user: userWithoutPassword,
+      token 
+    });
   } catch (error) {
     // Catch unexpected errors (db errors, runtime errors, etc.)
     return res.status(500).json({ message: "Server error", error });
