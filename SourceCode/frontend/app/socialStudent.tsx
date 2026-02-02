@@ -9,7 +9,7 @@ import {
   TextInput,
   TouchableOpacity,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import BottomNav from "./components/BottomNav";
 
@@ -22,6 +22,7 @@ type Post = {
 
 export default function SocialStudent() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const [activeTab, setActiveTab] = useState("social");
   const [refreshing, setRefreshing] = useState(false);
@@ -31,6 +32,7 @@ export default function SocialStudent() {
     { id: "1", username: "kam", caption: "Freshers week was unreal 😂", liked: true },
     { id: "2", username: "henry", caption: "Anyone going to the union tonight?", liked: false },
     { id: "3", username: "dylan", caption: "COMP grind… again. send help.", liked: false },
+    { id: "4", username: "mia", caption: "Coffee + library sesh if anyone’s down ☕️", liked: false },
   ]);
 
   const handleRefresh = useCallback(async () => {
@@ -55,6 +57,8 @@ export default function SocialStudent() {
     );
   };
 
+  const bottomPad = 110 + Math.max(insets.bottom, 0);
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.topBar}>
@@ -72,7 +76,7 @@ export default function SocialStudent() {
 
         <TouchableOpacity
           style={styles.profileBtn}
-          onPress={() => router.push("/EventFeed")}
+          onPress={() => router.push("/profileStudent")}
           activeOpacity={0.85}
         >
           <View style={styles.profileCircle} />
@@ -81,7 +85,8 @@ export default function SocialStudent() {
 
       <ScrollView
         style={styles.scrollArea}
-        contentContainerStyle={{ paddingTop: 10, paddingBottom: 110 }}
+        contentContainerStyle={{ paddingTop: 12, paddingBottom: bottomPad }}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
@@ -144,18 +149,15 @@ export default function SocialStudent() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#3c0303ff",
-  },
+  container: { flex: 1, backgroundColor: "#3c0303ff" },
 
   topBar: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
     gap: 12,
-    paddingTop: 6,
-    paddingBottom: 6,
+    paddingTop: 8,
+    paddingBottom: 8,
   },
 
   searchWrap: {
@@ -168,17 +170,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     justifyContent: "space-between",
   },
-  searchInput: {
-    flex: 1,
-    color: "#fff",
-    fontSize: 15,
-    paddingRight: 10,
-  },
-  searchIcon: {
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 18,
-    marginLeft: 8,
-  },
+  searchInput: { flex: 1, color: "#fff", fontSize: 15, paddingRight: 10 },
+  searchIcon: { color: "rgba(255,255,255,0.7)", fontSize: 18, marginLeft: 8 },
 
   profileBtn: {
     width: 44,
@@ -195,37 +188,22 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.35)",
   },
 
-  scrollArea: {
-    flex: 1,
-    paddingHorizontal: 16,
-  },
+  scrollArea: { flex: 1, paddingHorizontal: 16 },
 
-  postCard: {
-    marginBottom: 18,
-  },
+  postCard: { marginBottom: 22 },
 
-  postHeader: {
-    marginBottom: 10,
-  },
-  userRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
+  postHeader: { marginBottom: 10 },
+  userRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   userAvatar: {
     width: 34,
     height: 34,
     borderRadius: 999,
     backgroundColor: "rgba(255,255,255,0.35)",
   },
-  username: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "700",
-  },
+  username: { color: "#fff", fontSize: 16, fontWeight: "800" },
 
   mediaCard: {
-    height: 360,
+    height: 380,
     borderRadius: 26,
     backgroundColor: "rgba(0,0,0,0.35)",
     justifyContent: "center",
@@ -236,18 +214,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
-  mediaLabel: {
-    color: "rgba(255,255,255,0.65)",
-    fontSize: 18,
-    fontWeight: "700",
-  },
+  mediaLabel: { color: "rgba(255,255,255,0.65)", fontSize: 18, fontWeight: "800" },
 
-  captionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginTop: 12,
-  },
+  captionRow: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 12 },
   likeBtn: {
     width: 46,
     height: 46,
@@ -256,20 +225,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  likeIcon: {
-    fontSize: 22,
-    color: "rgba(255,255,255,0.65)",
-    fontWeight: "800",
-  },
-  likeIconOn: {
-    color: "#00c853",
-  },
-  captionText: {
-    flex: 1,
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "700",
-  },
+  likeIcon: { fontSize: 22, color: "rgba(255,255,255,0.65)", fontWeight: "900" },
+  likeIconOn: { color: "#00c853" },
+  captionText: { flex: 1, color: "#fff", fontSize: 18, fontWeight: "800" },
 
   emptyCard: {
     backgroundColor: "rgba(255,255,255,0.08)",
@@ -277,13 +235,6 @@ const styles = StyleSheet.create({
     padding: 14,
     marginTop: 10,
   },
-  emptyTitle: {
-    color: "#fff",
-    fontWeight: "800",
-    fontSize: 16,
-    marginBottom: 4,
-  },
-  emptyText: {
-    color: "rgba(255,255,255,0.75)",
-  },
+  emptyTitle: { color: "#fff", fontWeight: "900", fontSize: 16, marginBottom: 4 },
+  emptyText: { color: "rgba(255,255,255,0.75)" },
 });

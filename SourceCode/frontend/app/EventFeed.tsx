@@ -112,7 +112,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.06)",
     paddingHorizontal: 12,
     paddingVertical: 10,
-    marginVertical: 15,
     marginHorizontal: 16,
     borderRadius: 12,
     shadowColor: "#000",
