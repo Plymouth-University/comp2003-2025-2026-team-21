@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import * as SecureStore from "expo-secure-store";
+import * as postsApi from "../../lib/postsApi";
 
 export type Post = {
   id: string;
@@ -11,67 +13,76 @@ export type Post = {
 
 type PostsContextType = {
   posts: Post[];
-  addPost: (caption: string, imageUri: string) => void;
+  addPost: (caption: string, imageUri: string) => Promise<void>;
   toggleLike: (id: string) => void;
+  refreshPosts: () => Promise<void>;
+  loading: boolean;
 };
 
 const PostsContext = createContext<PostsContextType | undefined>(undefined);
 
 export function PostsProvider({ children }: { children: ReactNode }) {
-  const [posts, setPosts] = useState<Post[]>([
-    {
-      id: "1",
-      username: "kam",
-      caption: "Freshers week was unreal 😂",
-      liked: true,
-      timestamp: Date.now() - 3600000,
-    },
-    {
-      id: "2",
-      username: "henry",
-      caption: "Anyone going to the union tonight?",
-      liked: false,
-      timestamp: Date.now() - 7200000,
-    },
-    {
-      id: "3",
-      username: "dylan",
-      caption: "COMP grind… again. send help.",
-      liked: false,
-      timestamp: Date.now() - 10800000,
-    },
-    {
-      id: "4",
-      username: "mia",
-      caption: "Coffee + library sesh if anyone's down ☕️",
-      liked: false,
-      timestamp: Date.now() - 14400000,
-    },
-  ]);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const addPost = (caption: string, imageUri: string) => {
-    // Get username from SecureStore if available
-    const getUsername = async () => {
-      try {
-        const { default: SecureStore } = await import("expo-secure-store");
-        return await SecureStore.getItemAsync("username");
-      } catch {
-        return null;
+  // Load posts from database on mount
+  useEffect(() => {
+    loadPosts();
+  }, []);
+
+  const loadPosts = async () => {
+    setLoading(true);
+    try {
+      // Check if user is authenticated before trying to load posts
+      const token = await SecureStore.getItemAsync("authToken");
+      
+      if (!token) {
+        console.log("No auth token found, skipping post load");
+        setLoading(false);
+        return;
       }
-    };
 
-    getUsername().then((storedUsername) => {
+      const dbPosts = await postsApi.getAllPosts();
+      
+      // Convert database posts to app format
+      const formattedPosts: Post[] = dbPosts.map((dbPost) => ({
+        id: dbPost.id,
+        username: dbPost.User.username,
+        caption: dbPost.caption,
+        imageUri: `data:${dbPost.imageMimeType};base64,${dbPost.image}`,
+        liked: false, // TODO: Track likes in database
+        timestamp: new Date(dbPost.createdAt).getTime(),
+      }));
+
+      setPosts(formattedPosts);
+    } catch (error) {
+      console.error("Failed to load posts:", error);
+      // Keep existing posts if load fails
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addPost = async (caption: string, imageUri: string) => {
+    try {
+      // Save to database
+      const dbPost = await postsApi.createPost(caption, imageUri);
+
+      // Add to local state
       const newPost: Post = {
-        id: Date.now().toString(),
-        username: storedUsername || "You",
-        caption,
-        imageUri,
+        id: dbPost.id,
+        username: dbPost.User.username,
+        caption: dbPost.caption,
+        imageUri: `data:${dbPost.imageMimeType};base64,${dbPost.image}`,
         liked: false,
-        timestamp: Date.now(),
+        timestamp: new Date(dbPost.createdAt).getTime(),
       };
 
       setPosts((prev) => [newPost, ...prev]);
-    });
+    } catch (error) {
+      console.error("Failed to create post:", error);
+      throw error;
+    }
   };
 
   const toggleLike = (id: string) => {
@@ -80,8 +91,12 @@ export function PostsProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  const refreshPosts = async () => {
+    await loadPosts();
+  };
+
   return (
-    <PostsContext.Provider value={{ posts, addPost, toggleLike }}>
+    <PostsContext.Provider value={{ posts, addPost, toggleLike, refreshPosts, loading }}>
       {children}
     </PostsContext.Provider>
   );

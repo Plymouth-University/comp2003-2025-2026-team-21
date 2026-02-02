@@ -35,13 +35,13 @@ model Event {
 }
 
 model Posts {
-  id            String   @id(map: "Post_pkey")
+  id            String   @id @default(uuid())
   caption       String
   image         Bytes
   imageMimeType String
   createdAt     DateTime @default(now())
   authorId      String
-  User          User     @relation(fields: [authorId], references: [id], map: "Post_authorId_fkey")
+  User          User     @relation(fields: [authorId], references: [id])
 }
 
 enum Role {

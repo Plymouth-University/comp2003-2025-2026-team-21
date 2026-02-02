@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import authRoutes from "./routes/auth";
+import postsRoutes from "./routes/posts";
 import { PrismaClient } from "@prisma/client";
 
 /**
@@ -20,7 +21,7 @@ const app = express();
  * - express.json(): allows Express to parse JSON request bodies into req.body
  */
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "10mb" })); // Increased limit for image uploads
 
 /**
  * Prisma client instance to query your database.
@@ -36,6 +37,16 @@ const prisma = new PrismaClient();
  *  GET  /auth/me
  */
 app.use("/auth", authRoutes);
+
+/**
+ * Mount posts routes under /posts
+ * This means the router in routes/posts.ts becomes:
+ *  POST /posts
+ *  GET  /posts
+ *  GET  /posts/user/:userId
+ *  DELETE /posts/:postId
+ */
+app.use("/posts", postsRoutes);
 
 /**
  * Simple health check endpoint.

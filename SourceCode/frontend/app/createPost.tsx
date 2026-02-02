@@ -60,7 +60,7 @@ export default function CreatePost() {
     }
   };
 
-  const handlePost = () => {
+  const handlePost = async () => {
     if (!imageUri) {
       Alert.alert("No Image", "Please select or take a photo first.");
       return;
@@ -71,10 +71,14 @@ export default function CreatePost() {
       return;
     }
 
-    addPost(caption, imageUri);
-    Alert.alert("Success", "Post created successfully!", [
-      { text: "OK", onPress: () => router.back() },
-    ]);
+    try {
+      await addPost(caption, imageUri);
+      Alert.alert("Success", "Post created successfully!", [
+        { text: "OK", onPress: () => router.back() },
+      ]);
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to create post. Please try again.");
+    }
   };
 
   return (

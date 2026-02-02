@@ -18,7 +18,7 @@ import { usePosts } from "./contexts/PostsContext";
 export default function SocialStudent() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { posts, toggleLike } = usePosts();
+  const { posts, toggleLike, refreshPosts } = usePosts();
 
   const [activeTab, setActiveTab] = useState("social");
   const [refreshing, setRefreshing] = useState(false);
@@ -27,9 +27,9 @@ export default function SocialStudent() {
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    await new Promise((res) => setTimeout(res, 700));
+    await refreshPosts();
     setRefreshing(false);
-  }, []);
+  }, [refreshPosts]);
 
   const filteredPosts = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
