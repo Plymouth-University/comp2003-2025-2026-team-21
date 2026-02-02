@@ -90,7 +90,7 @@ export default function SocialStudent() {
           method: 'POST',
           body: formData,
           headers: {
-            'Content-Type': 'multipart/form-data',
+            // Note: Don't set Content-Type for FormData - browser sets it automatically with boundary
             'Authorization': `Bearer ${token}`,
           },
         });
