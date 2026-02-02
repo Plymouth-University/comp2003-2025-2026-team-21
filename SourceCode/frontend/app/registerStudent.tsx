@@ -11,11 +11,9 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
+import { API_URL } from "../lib/api";
 
-const API_URL = "https://bookish-chainsaw-jj49r95xvj9h5x7x-3001.app.github.dev/auth"; 
-// match the one used on login screen
-
-export default function RegisterScreen() {
+export default function RegisterStudent() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -23,21 +21,63 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const isValidStudentEmail = (email: string) => {
-    return email.endsWith("@students.plymouth.ac.uk");
-  };
+  const isValidStudentEmail = (value: string) =>
+    value.toLowerCase().endsWith("@students.plymouth.ac.uk");
 
-  const isStrongPassword = (password: string) => {
-    return password.length >= 8 && /\d/.test(password);
+  const isStrongPassword = (value: string) =>
+    value.length >= 8 && /\d/.test(value);
+
+  const registerRequest = async (emailValue: string, passwordValue: string) => {
+    const url = `${API_URL}/auth/register`;
+    console.log("Calling backend:", url);
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Student",
+        email: emailValue,
+        password: passwordValue,
+        role: "STUDENT",
+      }),
+    });
+
+    const raw = await response.text();
+
+    let data: any = null;
+    if (raw) {
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        throw new Error(`Non-JSON response (HTTP ${response.status})`);
+      }
+    }
+
+    if (!response.ok) {
+      throw new Error(
+        data?.error || data?.message || `Registration failed (HTTP ${response.status})`
+      );
+    }
+
+    if (!data?.token || !data?.user) {
+      throw new Error("Registration response missing token/user");
+    }
+
+    return data as {
+      token: string;
+      user: { id: string; email: string; role: string; name?: string };
+    };
   };
 
   const handleRegister = async () => {
-    if (!email || !password || !confirmPassword) {
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail || !password || !confirmPassword) {
       Alert.alert("Missing Fields", "Please fill in all fields.");
       return;
     }
 
-    if (!isValidStudentEmail(email)) {
+    if (!isValidStudentEmail(trimmedEmail)) {
       Alert.alert(
         "Invalid Email",
         "You must use a valid @students.plymouth.ac.uk email address."
@@ -61,31 +101,14 @@ export default function RegisterScreen() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: "Student", 
-          email,
-          password,
-          role: "STUDENT",
-        }),
-      });
+      const { token } = await registerRequest(trimmedEmail, password);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Registration failed");
-      }
-
-      
-      await SecureStore.setItemAsync("authToken", data.token);
+      await SecureStore.setItemAsync("authToken", token);
 
       Alert.alert("Success", "Account created successfully!");
-      router.replace("/EventFeed"); 
+      router.replace("/EventFeed");
     } catch (err: any) {
-      Alert.alert("Registration failed", err.message);
-      console.log(err);
+      Alert.alert("Registration failed", err?.message || "Please try again.");
     } finally {
       setLoading(false);
     }
@@ -133,7 +156,11 @@ export default function RegisterScreen() {
           onChangeText={setConfirmPassword}
         />
 
-        <TouchableOpacity style={styles.registerBtn} onPress={handleRegister}>
+        <TouchableOpacity
+          style={styles.registerBtn}
+          onPress={handleRegister}
+          disabled={loading}
+        >
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
@@ -141,7 +168,7 @@ export default function RegisterScreen() {
           )}
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => router.back()} disabled={loading}>
           <Text style={styles.loginText}>Back to Login</Text>
         </TouchableOpacity>
       </View>
@@ -150,27 +177,26 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.25)",
+  container: {
+    flex: 1,
+    alignSelf: "stretch",
   },
-
   content: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 30,
   },
-
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.25)",
+  },
   title: {
     fontSize: 32,
     fontWeight: "bold",
     marginBottom: 30,
     color: "#fff",
   },
-
   label: {
     alignSelf: "flex-start",
     marginLeft: 5,
@@ -179,7 +205,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: "#fff",
   },
-
   input: {
     width: "100%",
     height: 50,
@@ -190,7 +215,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#000",
   },
-
   registerBtn: {
     backgroundColor: "#7a46ff",
     width: 180,
@@ -200,13 +224,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 10,
   },
-
   registerText: {
     color: "#fff",
     fontSize: 18,
     fontWeight: "600",
   },
-
   loginText: {
     marginTop: 20,
     fontSize: 14,
