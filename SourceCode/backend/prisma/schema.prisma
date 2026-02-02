@@ -14,6 +14,8 @@ model User {
   password  String
   role      Role     @default(STUDENT)
   name      String?
+  profileImage Bytes?
+  profileImageMimeType String?
   createdAt DateTime @default(now())
 
   events    Event[]
@@ -25,6 +27,8 @@ model Event {
   description String
   date        DateTime
   location    String
+  eventImage  Bytes?
+  eventImageMimeType String?
   createdAt   DateTime @default(now())
 
   organiser   User     @relation(fields: [organiserId], references: [id])

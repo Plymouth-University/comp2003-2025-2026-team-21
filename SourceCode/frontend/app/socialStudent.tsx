@@ -6,11 +6,15 @@ import {
   ScrollView,
   RefreshControl,
   Platform,
+  TouchableOpacity,
+  Alert,
 } from "react-native";
+import * as ImagePicker from 'expo-image-picker';
 import FilterBar from "./components/FilterBar";
 import BottomNav from "./components/BottomNav";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { API_URL } from "../lib/api";
 
 export default function SocialStudent() {
   const router = useRouter();
@@ -37,6 +41,64 @@ export default function SocialStudent() {
     await new Promise((res) => setTimeout(res, 800));
     setRefreshing(false);
   }, []);
+
+  const handleUploadImage = async () => {
+    try {
+      // Request permissions
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (!permissionResult.granted) {
+        Alert.alert("Permission Required", "You need to grant permission to access your photos.");
+        return;
+      }
+
+      // Pick image
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const asset = result.assets[0];
+        
+        // Create form data
+        const formData = new FormData();
+        const uri = asset.uri;
+        const filename = uri.split('/').pop() || 'image.jpg';
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+        formData.append('image', {
+          uri: uri,
+          name: filename,
+          type: type,
+        } as any);
+
+        // TODO: Replace with your actual upload endpoint
+        // const response = await fetch(`${API_URL}/api/upload-image`, {
+        //   method: 'POST',
+        //   body: formData,
+        //   headers: {
+        //     'Content-Type': 'multipart/form-data',
+        //   },
+        // });
+        
+        // if (response.ok) {
+        //   Alert.alert("Success", "Image uploaded successfully!");
+        //   handleRefresh();
+        // } else {
+        //   Alert.alert("Error", "Failed to upload image");
+        // }
+        
+        Alert.alert("Image Selected", "Image ready for upload (backend endpoint needed)");
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      Alert.alert("Error", "Failed to upload image");
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -80,6 +142,14 @@ export default function SocialStudent() {
           <Text style={styles.eventSubtext}>Posted by: Outdoor Soc | Location: Off-campus</Text>
         </View>
       </ScrollView>
+
+      <TouchableOpacity 
+        style={styles.uploadButton} 
+        onPress={handleUploadImage}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.uploadButtonText}>📷</Text>
+      </TouchableOpacity>
 
       <BottomNav
         activeTab={activeTab}
@@ -134,4 +204,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 4,
   },
-});
+  uploadButton: {
+    position: "absolute",
+    bottom: 90,
+    right: 20,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "#bf9a9aff",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: Platform.OS === "ios" ? 0.3 : 0.5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  uploadButtonText: {
+    fontSize: 28,
+  },
