@@ -49,11 +49,13 @@ export default function LoginScreen() {
     });
 
     const raw = await response.text();
+    console.log("Raw response:", raw.substring(0, 500));
 
     let data: any = null;
     if (raw) {
       try {
         data = JSON.parse(raw);
+        console.log("Parsed response user data:", data.user);
       } catch {
         throw new Error(`Non-JSON response (HTTP ${response.status})`);
       }

@@ -90,6 +90,8 @@ export const login = async (req: Request, res: Response) => {
     // Not found -> 404
     if (!user) return res.status(404).json({ message: "User not found" });
 
+    console.log("User found:", { id: user.id, email: user.email, username: user.username });
+
     // 2) Compare raw password with hashed password in DB
     const validPassword = await bcrypt.compare(password, user.password);
 
@@ -108,8 +110,22 @@ export const login = async (req: Request, res: Response) => {
 
     // Remove password from response for security
     const { password: _, ...userWithoutPassword } = user;
+    
+    console.log("!!!! LOGIN REQUEST RECEIVED !!!!");
+    console.log("User from DB:", JSON.stringify(user, null, 2));
+    console.log("Sending response:", JSON.stringify({ id: userWithoutPassword.id, email: userWithoutPassword.email, username: userWithoutPassword.username }));
 
-    return res.json({ token, user: userWithoutPassword });
+    // FORCE include username explicitly
+    return res.json({ 
+      token, 
+      user: {
+        id: userWithoutPassword.id,
+        email: userWithoutPassword.email,
+        username: userWithoutPassword.username || "TEST_USERNAME_FROM_NEW_BACKEND",
+        role: userWithoutPassword.role,
+        name: userWithoutPassword.name
+      }
+    });
   } catch (error) {
     return res.status(500).json({ message: "Server error", error });
   }
@@ -118,24 +134,25 @@ export const login = async (req: Request, res: Response) => {
 /**
  * ME
  * Returns current user info.
- *
- * IMPORTANT: This expects `req.userId` to be set by some auth middleware.
- * But in YOUR uploaded `authMiddleware.ts`, the middleware sets `req.user`, not `req.userId`.
- * So unless you have another middleware or type augmentation, this can return undefined userId.
  */
 export const me = async (req: Request, res: Response) => {
   try {
-    // @ts-ignore because Express Request type doesn't include `userId` by default.
-    // (Better solution is to extend the Request type globally.)
-    // @ts-ignore
-    const userId = req.userId;
+    // @ts-ignore - user is set by authMiddleware
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
 
     // Fetch user by the decoded userId
     const user = await prisma.user.findUnique({ where: { id: userId } });
 
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    return res.json({ user });
+    // Remove password from response
+    const { password: _, ...userWithoutPassword } = user;
+
+    return res.json({ user: userWithoutPassword });
   } catch (error) {
     return res.status(500).json({ message: "Server error", error });
   }

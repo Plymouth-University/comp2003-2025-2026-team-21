@@ -188,6 +188,32 @@ export async function getUserPosts(userId: string): Promise<Post[]> {
 }
 
 /**
+ * Get current user profile
+ */
+export async function getCurrentUser(): Promise<{ id: string; email: string; username: string; name: string | null; role: string }> {
+  const token = await getAuthToken();
+  
+  if (!token) {
+    throw new Error("Not authenticated");
+  }
+
+  const response = await fetch(`${API_URL}/auth/me`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Failed to fetch user profile");
+  }
+
+  const data = await response.json();
+  return data.user;
+}
+
+/**
  * Delete a post
  */
 export async function deletePost(postId: string): Promise<void> {

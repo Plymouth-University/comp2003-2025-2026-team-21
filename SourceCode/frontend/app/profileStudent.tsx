@@ -14,7 +14,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import BottomNav from "./components/BottomNav";
-import { getUserPosts, Post } from "../lib/postsApi";
+import { getUserPosts, getCurrentUser, Post } from "../lib/postsApi";
 
 export default function ProfileStudent() {
   const router = useRouter();
@@ -22,7 +22,7 @@ export default function ProfileStudent() {
 
   const [activeTab, setActiveTab] = useState("social");
   const [refreshing, setRefreshing] = useState(false);
-  const [username, setUsername] = useState("Username");
+  const [username, setUsername] = useState("Loading...");
   const [userId, setUserId] = useState<string | null>(null);
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,20 +37,56 @@ export default function ProfileStudent() {
   const loadUserProfile = async () => {
     try {
       setLoading(true);
-      const storedUsername = await SecureStore.getItemAsync("username");
-      const storedUserId = await SecureStore.getItemAsync("userId");
       
-      if (storedUsername) {
-        setUsername(storedUsername);
+      let finalUsername = null;
+      let finalUserId = null;
+      
+      // Try 1: Get from backend
+      try {
+        const user = await getCurrentUser();
+        console.log("Fetched user from backend:", user);
+        
+        if (user.username) {
+          finalUsername = user.username;
+        }
+        finalUserId = user.id;
+      } catch (error) {
+        console.log("Failed to fetch from backend, will try other sources");
       }
       
-      if (storedUserId) {
-        setUserId(storedUserId);
-        const posts = await getUserPosts(storedUserId);
+      // Try 2: Get from SecureStore (saved during login/registration)
+      if (!finalUsername) {
+        const storedUsername = await SecureStore.getItemAsync("username");
+        if (storedUsername) {
+          console.log("Got username from SecureStore:", storedUsername);
+          finalUsername = storedUsername;
+        }
+      }
+      
+      if (!finalUserId) {
+        const storedUserId = await SecureStore.getItemAsync("userId");
+        if (storedUserId) {
+          finalUserId = storedUserId;
+        }
+      }
+      
+      // Fetch user's posts
+      if (finalUserId) {
+        setUserId(finalUserId);
+        const posts = await getUserPosts(finalUserId);
         setUserPosts(posts);
+        
+        // Try 3: Get username from posts if still not found
+        if (!finalUsername && posts.length > 0 && posts[0].User?.username) {
+          finalUsername = posts[0].User.username;
+          console.log("Got username from post:", finalUsername);
+        }
       }
+      
+      setUsername(finalUsername || "Username not available");
     } catch (error) {
       console.error("Error loading user profile:", error);
+      setUsername("Error loading profile");
     } finally {
       setLoading(false);
     }
