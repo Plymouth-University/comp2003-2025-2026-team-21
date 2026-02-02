@@ -76,23 +76,22 @@ export default function SocialStudent() {
           type: type,
         } as any);
 
-        // TODO: Replace with your actual upload endpoint
-        // const response = await fetch(`${API_URL}/api/upload-image`, {
-        //   method: 'POST',
-        //   body: formData,
-        //   headers: {
-        //     'Content-Type': 'multipart/form-data',
-        //   },
-        // });
+        // Upload to backend
+        const response = await fetch(`${API_URL}/api/upload-image`, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
         
-        // if (response.ok) {
-        //   Alert.alert("Success", "Image uploaded successfully!");
-        //   handleRefresh();
-        // } else {
-        //   Alert.alert("Error", "Failed to upload image");
-        // }
-        
-        Alert.alert("Image Selected", "Image ready for upload (backend endpoint needed)");
+        if (response.ok) {
+          Alert.alert("Success", "Image uploaded successfully!");
+          handleRefresh();
+        } else {
+          const errorData = await response.json();
+          Alert.alert("Error", errorData.error || "Failed to upload image");
+        }
       }
     } catch (error) {
       console.error('Error uploading image:', error);

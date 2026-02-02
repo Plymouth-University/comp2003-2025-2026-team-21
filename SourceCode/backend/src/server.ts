@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import authRoutes from "./routes/auth";
+import uploadRoutes from "./routes/upload";
 import { PrismaClient } from "@prisma/client";
 
 /**
@@ -36,6 +37,13 @@ const prisma = new PrismaClient();
  *  GET  /auth/me
  */
 app.use("/auth", authRoutes);
+
+/**
+ * Mount upload routes under /api
+ * This means the router in routes/upload.ts becomes:
+ *  POST /api/upload-image
+ */
+app.use("/api", uploadRoutes);
 
 /**
  * Simple health check endpoint.
