@@ -222,3 +222,4 @@ const styles = StyleSheet.create({
   uploadButtonText: {
     fontSize: 28,
   },
+});
