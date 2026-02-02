@@ -8,32 +8,22 @@ import {
   Platform,
   TextInput,
   TouchableOpacity,
+  Image as RNImage,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import BottomNav from "./components/BottomNav";
-
-type Post = {
-  id: string;
-  username: string;
-  caption: string;
-  liked: boolean;
-};
+import { usePosts } from "./contexts/PostsContext";
 
 export default function SocialStudent() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { posts, toggleLike } = usePosts();
 
   const [activeTab, setActiveTab] = useState("social");
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const [posts, setPosts] = useState<Post[]>([
-    { id: "1", username: "kam", caption: "Freshers week was unreal 😂", liked: true },
-    { id: "2", username: "henry", caption: "Anyone going to the union tonight?", liked: false },
-    { id: "3", username: "dylan", caption: "COMP grind… again. send help.", liked: false },
-    { id: "4", username: "mia", caption: "Coffee + library sesh if anyone’s down ☕️", liked: false },
-  ]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -50,12 +40,6 @@ export default function SocialStudent() {
         p.caption.toLowerCase().includes(q)
     );
   }, [posts, searchQuery]);
-
-  const toggleLike = (id: string) => {
-    setPosts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, liked: !p.liked } : p))
-    );
-  };
 
   const bottomPad = 110 + Math.max(insets.bottom, 0);
 
@@ -101,7 +85,11 @@ export default function SocialStudent() {
             </View>
 
             <View style={styles.mediaCard}>
-              <Text style={styles.mediaLabel}>image</Text>
+              {post.imageUri ? (
+                <RNImage source={{ uri: post.imageUri }} style={styles.mediaImage} />
+              ) : (
+                <Text style={styles.mediaLabel}>image</Text>
+              )}
             </View>
 
             <View style={styles.captionRow}>
@@ -129,6 +117,14 @@ export default function SocialStudent() {
           </View>
         )}
       </ScrollView>
+
+      <TouchableOpacity
+        style={styles.floatingButton}
+        onPress={() => router.push("/createPost")}
+        activeOpacity={0.85}
+      >
+        <Text style={styles.floatingButtonIcon}>+</Text>
+      </TouchableOpacity>
 
       <BottomNav
         activeTab={activeTab}
@@ -213,6 +209,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     shadowRadius: 8,
     elevation: 6,
+    overflow: "hidden",
+  },
+  mediaImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
   },
   mediaLabel: { color: "rgba(255,255,255,0.65)", fontSize: 18, fontWeight: "800" },
 
@@ -237,4 +239,27 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { color: "#fff", fontWeight: "900", fontSize: 16, marginBottom: 4 },
   emptyText: { color: "rgba(255,255,255,0.75)" },
+
+  floatingButton: {
+    position: "absolute",
+    bottom: 120,
+    right: 20,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "#00c853",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: Platform.OS === "ios" ? 0.3 : 0.5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  floatingButtonIcon: {
+    fontSize: 32,
+    color: "#fff",
+    fontWeight: "700",
+    lineHeight: 32,
+  },
 });

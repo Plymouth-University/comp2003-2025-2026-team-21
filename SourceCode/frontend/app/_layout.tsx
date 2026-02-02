@@ -3,6 +3,7 @@ import { Slot } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { Asset } from "expo-asset";
 import { View } from "react-native";
+import { PostsProvider } from "./contexts/PostsContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -31,5 +32,9 @@ export default function RootLayout() {
     return <View />;
   }
 
-  return <Slot />;
+  return (
+    <PostsProvider>
+      <Slot />
+    </PostsProvider>
+  );
 }
