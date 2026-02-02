@@ -123,6 +123,7 @@ export default function RegisterStudent() {
       const { token, user } = await registerRequest(trimmedEmail, trimmedUsername, password);
 
       await SecureStore.setItemAsync("authToken", token);
+      await SecureStore.setItemAsync("userId", user.id);
       await SecureStore.setItemAsync("username", user.username);
 
       Alert.alert("Success", "Account created successfully!");

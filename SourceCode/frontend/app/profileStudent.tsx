@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,12 +7,14 @@ import {
   RefreshControl,
   Platform,
   TouchableOpacity,
+  Image,
+  Dimensions,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import BottomNav from "./components/BottomNav";
-
-type Tile = { id: string };
+import { getUserPosts, Post } from "../lib/postsApi";
 
 export default function ProfileStudent() {
   const router = useRouter();
@@ -20,18 +22,43 @@ export default function ProfileStudent() {
 
   const [activeTab, setActiveTab] = useState("social");
   const [refreshing, setRefreshing] = useState(false);
+  const [username, setUsername] = useState("Username");
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userPosts, setUserPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const username = "Username";
   const followers = 100;
 
-  const tiles = useMemo<Tile[]>(
-    () => Array.from({ length: 6 }).map((_, i) => ({ id: String(i + 1) })),
-    []
-  );
+  // Load user info and their posts
+  useEffect(() => {
+    loadUserProfile();
+  }, []);
+
+  const loadUserProfile = async () => {
+    try {
+      setLoading(true);
+      const storedUsername = await SecureStore.getItemAsync("username");
+      const storedUserId = await SecureStore.getItemAsync("userId");
+      
+      if (storedUsername) {
+        setUsername(storedUsername);
+      }
+      
+      if (storedUserId) {
+        setUserId(storedUserId);
+        const posts = await getUserPosts(storedUserId);
+        setUserPosts(posts);
+      }
+    } catch (error) {
+      console.error("Error loading user profile:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    await new Promise((res) => setTimeout(res, 650));
+    await loadUserProfile();
     setRefreshing(false);
   }, []);
 
@@ -74,15 +101,27 @@ export default function ProfileStudent() {
 
         <Text style={styles.followersText}>Followers: {followers}</Text>
 
-        <Text style={styles.postsLabel}>Posts:</Text>
+        <Text style={styles.postsLabel}>
+          Posts: {userPosts.length}
+        </Text>
 
-        <View style={styles.grid}>
-          {tiles.map((t) => (
-            <View key={t.id} style={styles.tile}>
-              <Text style={styles.tileLabel}>image</Text>
-            </View>
-          ))}
-        </View>
+        {loading ? (
+          <Text style={styles.loadingText}>Loading posts...</Text>
+        ) : userPosts.length === 0 ? (
+          <Text style={styles.emptyText}>No posts yet</Text>
+        ) : (
+          <View style={styles.grid}>
+            {userPosts.map((post) => (
+              <TouchableOpacity key={post.id} style={styles.tile} activeOpacity={0.8}>
+                <Image
+                  source={{ uri: `data:${post.imageMimeType};base64,${post.image}` }}
+                  style={styles.postImage}
+                  resizeMode="cover"
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </ScrollView>
 
       <BottomNav
@@ -188,28 +227,33 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 14,
-    justifyContent: "center",
+    gap: 4,
     paddingBottom: 12,
   },
 
   tile: {
-    width: "46%",
+    width: `${(100 / 3) - 0.7}%`,
     aspectRatio: 1,
-    borderRadius: 20,
     backgroundColor: "rgba(0,0,0,0.35)",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: Platform.OS === "ios" ? 0.16 : 0.32,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 8,
-    elevation: 6,
+    overflow: "hidden",
   },
 
-  tileLabel: {
-    color: "rgba(255,255,255,0.65)",
+  postImage: {
+    width: "100%",
+    height: "100%",
+  },
+
+  loadingText: {
+    textAlign: "center",
+    color: "rgba(255,255,255,0.6)",
     fontSize: 16,
-    fontWeight: "900",
+    marginTop: 20,
+  },
+
+  emptyText: {
+    textAlign: "center",
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 16,
+    marginTop: 20,
   },
 });

@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import BottomNav from "./components/BottomNav";
 
 export default function ProfileSettings() {
@@ -23,6 +24,35 @@ export default function ProfileSettings() {
 
   const placeholder = (label: string) => {
     Alert.alert("Not wired yet", `${label} is a placeholder screen for now.`);
+  };
+
+  const handleLogout = async () => {
+    Alert.alert(
+      "Logout",
+      "Are you sure you want to logout?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Logout", 
+          style: "destructive", 
+          onPress: async () => {
+            try {
+              // Clear all stored data
+              await SecureStore.deleteItemAsync("authToken");
+              await SecureStore.deleteItemAsync("userId");
+              await SecureStore.deleteItemAsync("username");
+              await SecureStore.deleteItemAsync("userEmail");
+              await SecureStore.deleteItemAsync("userPassword");
+              
+              // Navigate back to login
+              router.replace("/");
+            } catch (error) {
+              Alert.alert("Error", "Failed to logout. Please try again.");
+            }
+          }
+        },
+      ]
+    );
   };
 
   const confirmDelete = () => {
@@ -90,6 +120,14 @@ export default function ProfileSettings() {
         </View>
 
         <View style={{ flex: 1 }} />
+
+        <TouchableOpacity
+          style={styles.logoutBtn}
+          onPress={handleLogout}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.logoutText}>logout</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.deleteBtn}
@@ -197,6 +235,22 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 26,
     fontWeight: "900",
+  },
+
+  logoutBtn: {
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,165,0,0.15)",
+    marginBottom: 14,
+    borderWidth: 2,
+    borderColor: "rgba(255,165,0,0.3)",
+  },
+  logoutText: {
+    color: "#ffa500",
+    fontSize: 26,
+    fontWeight: "900",
+    textAlign: "center",
   },
 
   deleteBtn: {

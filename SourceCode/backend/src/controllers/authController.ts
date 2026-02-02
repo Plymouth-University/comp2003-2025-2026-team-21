@@ -106,12 +106,10 @@ export const login = async (req: Request, res: Response) => {
       { expiresIn: "7d" }
     );
 
-    /**
-     * ⚠️ SECURITY NOTE:
-     * Returning `user` may include hashed password.
-     * Safer to select/return only allowed fields.
-     */
-    return res.json({ token, user });
+    // Remove password from response for security
+    const { password: _, ...userWithoutPassword } = user;
+
+    return res.json({ token, user: userWithoutPassword });
   } catch (error) {
     return res.status(500).json({ message: "Server error", error });
   }

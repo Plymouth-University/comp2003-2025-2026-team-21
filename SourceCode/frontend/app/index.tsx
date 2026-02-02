@@ -69,7 +69,7 @@ export default function LoginScreen() {
 
     return data as {
       token: string;
-      user: { id: string; email: string; role: string; name?: string };
+      user: { id: string; email: string; role: string; name?: string; username?: string };
     };
   };
 
@@ -84,7 +84,18 @@ export default function LoginScreen() {
     try {
       const { token, user } = await loginRequest(email.trim(), password);
 
+      console.log("Login successful, user data:", { id: user.id, username: user.username, email: user.email });
+
       await SecureStore.setItemAsync("authToken", token);
+      await SecureStore.setItemAsync("userId", user.id);
+      
+      // Always store username - overwrite any previous value
+      if (user.username) {
+        await SecureStore.setItemAsync("username", user.username);
+        console.log("Stored username in SecureStore:", user.username);
+      } else {
+        console.warn("Warning: No username in login response");
+      }
 
       if (rememberMe) {
         await SecureStore.setItemAsync("userEmail", email.trim());
