@@ -39,6 +39,8 @@ export const createPost = async (req: Request, res: Response) => {
             id: true,
             username: true,
             name: true,
+            profileImage: true,
+            profileImageMimeType: true,
           },
         },
       },
@@ -48,6 +50,12 @@ export const createPost = async (req: Request, res: Response) => {
     const postWithBase64 = {
       ...post,
       image: post.image.toString("base64"),
+      User: {
+        ...post.User,
+        profileImage: post.User.profileImage
+          ? post.User.profileImage.toString("base64")
+          : null,
+      },
     };
 
     return res.status(201).json({ 
@@ -76,6 +84,8 @@ export const getAllPosts = async (req: Request, res: Response) => {
             id: true,
             username: true,
             name: true,
+            profileImage: true,
+            profileImageMimeType: true,
           },
         },
       },
@@ -85,6 +95,12 @@ export const getAllPosts = async (req: Request, res: Response) => {
     const postsWithBase64 = posts.map((post) => ({
       ...post,
       image: post.image.toString("base64"),
+      User: {
+        ...post.User,
+        profileImage: post.User.profileImage
+          ? post.User.profileImage.toString("base64")
+          : null,
+      },
     }));
 
     return res.json({ posts: postsWithBase64 });
@@ -115,6 +131,8 @@ export const getUserPosts = async (req: Request, res: Response) => {
             id: true,
             username: true,
             name: true,
+            profileImage: true,
+            profileImageMimeType: true,
           },
         },
       },
@@ -124,11 +142,62 @@ export const getUserPosts = async (req: Request, res: Response) => {
     const postsWithBase64 = posts.map((post) => ({
       ...post,
       image: post.image.toString("base64"),
+      User: {
+        ...post.User,
+        profileImage: post.User.profileImage
+          ? post.User.profileImage.toString("base64")
+          : null,
+      },
     }));
 
     return res.json({ posts: postsWithBase64 });
   } catch (error) {
     console.error("Error fetching user posts:", error);
+    return res.status(500).json({ message: "Server error", error });
+  }
+};
+
+/**
+ * GET POST BY ID
+ * Retrieves a single post with author information
+ */
+export const getPostById = async (req: Request, res: Response) => {
+  try {
+    const { postId } = req.params;
+
+    const post = await prisma.posts.findUnique({
+      where: { id: postId },
+      include: {
+        User: {
+          select: {
+            id: true,
+            username: true,
+            name: true,
+            profileImage: true,
+            profileImageMimeType: true,
+          },
+        },
+      },
+    });
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    const postWithBase64 = {
+      ...post,
+      image: post.image.toString("base64"),
+      User: {
+        ...post.User,
+        profileImage: post.User.profileImage
+          ? post.User.profileImage.toString("base64")
+          : null,
+      },
+    };
+
+    return res.json({ post: postWithBase64 });
+  } catch (error) {
+    console.error("Error fetching post:", error);
     return res.status(500).json({ message: "Server error", error });
   }
 };
@@ -168,6 +237,40 @@ export const deletePost = async (req: Request, res: Response) => {
     return res.json({ message: "Post deleted successfully" });
   } catch (error) {
     console.error("Error deleting post:", error);
+    return res.status(500).json({ message: "Server error", error });
+  }
+};
+
+/**
+ * UPDATE POST LIKES
+ * Increments or decrements a post's like count
+ */
+export const updatePostLikes = async (req: Request, res: Response) => {
+  try {
+    const { postId } = req.params;
+    const { delta } = req.body;
+
+    if (!postId || typeof delta !== "number") {
+      return res.status(400).json({ message: "Missing postId or delta" });
+    }
+
+    const post = await prisma.posts.findUnique({ where: { id: postId } });
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    const nextLikes = Math.max(0, post.likes + delta);
+
+    const updatedPost = await prisma.posts.update({
+      where: { id: postId },
+      data: { likes: nextLikes },
+      select: { id: true, likes: true },
+    });
+
+    return res.json({ post: updatedPost });
+  } catch (error) {
+    console.error("Error updating post likes:", error);
     return res.status(500).json({ message: "Server error", error });
   }
 };

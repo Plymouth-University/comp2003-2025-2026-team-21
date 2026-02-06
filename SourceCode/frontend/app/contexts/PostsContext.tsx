@@ -4,9 +4,12 @@ import * as postsApi from "../../lib/postsApi";
 
 export type Post = {
   id: string;
+  userId: string;
   username: string;
+  userAvatarUri?: string | null;
   caption: string;
   imageUri?: string;
+  likeCount: number;
   liked: boolean;
   timestamp: number;
 };
@@ -14,7 +17,7 @@ export type Post = {
 type PostsContextType = {
   posts: Post[];
   addPost: (caption: string, imageUri: string) => Promise<void>;
-  toggleLike: (id: string) => void;
+  toggleLike: (id: string) => Promise<void>;
   refreshPosts: () => Promise<void>;
   loading: boolean;
 };
@@ -47,9 +50,15 @@ export function PostsProvider({ children }: { children: ReactNode }) {
       // Convert database posts to app format
       const formattedPosts: Post[] = dbPosts.map((dbPost) => ({
         id: dbPost.id,
+        userId: dbPost.User.id,
         username: dbPost.User.username,
+        userAvatarUri:
+          dbPost.User.profileImage && dbPost.User.profileImageMimeType
+            ? `data:${dbPost.User.profileImageMimeType};base64,${dbPost.User.profileImage}`
+            : null,
         caption: dbPost.caption,
         imageUri: `data:${dbPost.imageMimeType};base64,${dbPost.image}`,
+        likeCount: dbPost.likes ?? 0,
         liked: false, // TODO: Track likes in database
         timestamp: new Date(dbPost.createdAt).getTime(),
       }));
@@ -71,9 +80,15 @@ export function PostsProvider({ children }: { children: ReactNode }) {
       // Add to local state
       const newPost: Post = {
         id: dbPost.id,
+        userId: dbPost.User.id,
         username: dbPost.User.username,
+        userAvatarUri:
+          dbPost.User.profileImage && dbPost.User.profileImageMimeType
+            ? `data:${dbPost.User.profileImageMimeType};base64,${dbPost.User.profileImage}`
+            : null,
         caption: dbPost.caption,
         imageUri: `data:${dbPost.imageMimeType};base64,${dbPost.image}`,
+        likeCount: dbPost.likes ?? 0,
         liked: false,
         timestamp: new Date(dbPost.createdAt).getTime(),
       };
@@ -85,10 +100,42 @@ export function PostsProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const toggleLike = (id: string) => {
+  const toggleLike = async (id: string) => {
+    let delta = 0;
+
     setPosts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, liked: !p.liked } : p))
+      prev.map((p) => {
+        if (p.id !== id) return p;
+        delta = p.liked ? -1 : 1;
+        return {
+          ...p,
+          liked: !p.liked,
+          likeCount: Math.max(0, p.likeCount + delta),
+        };
+      })
     );
+
+    try {
+      const updatedLikes = await postsApi.updatePostLike(id, delta);
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === id ? { ...p, likeCount: updatedLikes } : p
+        )
+      );
+    } catch (error) {
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === id
+            ? {
+                ...p,
+                liked: !p.liked,
+                likeCount: Math.max(0, p.likeCount - delta),
+              }
+            : p
+        )
+      );
+      throw error;
+    }
   };
 
   const refreshPosts = async () => {

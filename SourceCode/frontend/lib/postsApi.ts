@@ -9,12 +9,37 @@ export interface Post {
   imageMimeType: string;
   createdAt: string;
   authorId: string;
+  likes: number;
   User: {
     id: string;
     username: string;
     name: string | null;
+    profileImage: string | null;
+    profileImageMimeType: string | null;
   };
 }
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  username?: string;
+  name: string | null;
+  role: string;
+  profileImage: string | null;
+  profileImageMimeType: string | null;
+}
+
+export interface PublicUserProfile {
+  id: string;
+  username: string;
+  name: string | null;
+  profileImage: string | null;
+  profileImageMimeType: string | null;
+  createdAt: string;
+}
+
+let currentUserCache: UserProfile | null = null;
+const publicUserCache = new Map<string, PublicUserProfile>();
 
 /**
  * Get auth token from SecureStore
@@ -188,13 +213,43 @@ export async function getUserPosts(userId: string): Promise<Post[]> {
 }
 
 /**
+ * Get a single post by id
+ */
+export async function getPostById(postId: string): Promise<Post> {
+  const token = await getAuthToken();
+
+  if (!token) {
+    throw new Error("Not authenticated");
+  }
+
+  const response = await fetch(`${API_URL}/posts/${postId}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Failed to fetch post");
+  }
+
+  const data = await response.json();
+  return data.post;
+}
+
+/**
  * Get current user profile
  */
-export async function getCurrentUser(): Promise<{ id: string; email: string; username: string; name: string | null; role: string }> {
+export async function getCurrentUser(): Promise<UserProfile> {
   const token = await getAuthToken();
   
   if (!token) {
     throw new Error("Not authenticated");
+  }
+
+  if (currentUserCache) {
+    return currentUserCache;
   }
 
   const response = await fetch(`${API_URL}/auth/me`, {
@@ -210,7 +265,108 @@ export async function getCurrentUser(): Promise<{ id: string; email: string; use
   }
 
   const data = await response.json();
+  currentUserCache = data.user;
   return data.user;
+}
+
+/**
+ * Get public profile for a specific user
+ */
+export async function getUserProfile(userId: string): Promise<PublicUserProfile> {
+  const token = await getAuthToken();
+
+  if (!token) {
+    throw new Error("Not authenticated");
+  }
+
+  const cachedProfile = publicUserCache.get(userId);
+  if (cachedProfile) {
+    return cachedProfile;
+  }
+
+  const response = await fetch(`${API_URL}/auth/user/${userId}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || error.message || "Failed to fetch user profile");
+  }
+
+  const data = await response.json();
+  publicUserCache.set(userId, data.user);
+  return data.user;
+}
+
+/**
+ * Update current user's profile image
+ */
+export async function updateProfileImage(imageUri: string): Promise<UserProfile> {
+  const token = await getAuthToken();
+
+  if (!token) {
+    throw new Error("Not authenticated");
+  }
+
+  const imageBase64 = await imageUriToBase64(imageUri);
+  const imageMimeType = getMimeType(imageUri);
+
+  const response = await fetch(`${API_URL}/auth/profile-image`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      image: imageBase64,
+      imageMimeType,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || error.message || "Failed to update profile image");
+  }
+
+  const data = await response.json();
+  currentUserCache = data.user;
+  return data.user;
+}
+
+/**
+ * Update current user's password
+ */
+export async function updatePassword(
+  currentPassword: string,
+  newPassword: string,
+  confirmPassword: string
+): Promise<void> {
+  const token = await getAuthToken();
+
+  if (!token) {
+    throw new Error("Not authenticated");
+  }
+
+  const response = await fetch(`${API_URL}/auth/password`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      currentPassword,
+      newPassword,
+      confirmPassword,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || error.message || "Failed to update password");
+  }
 }
 
 /**
@@ -234,4 +390,32 @@ export async function deletePost(postId: string): Promise<void> {
     const error = await response.json();
     throw new Error(error.message || "Failed to delete post");
   }
+}
+
+/**
+ * Update like count for a post
+ */
+export async function updatePostLike(postId: string, delta: number): Promise<number> {
+  const token = await getAuthToken();
+
+  if (!token) {
+    throw new Error("Not authenticated");
+  }
+
+  const response = await fetch(`${API_URL}/posts/${postId}/like`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ delta }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Failed to update like count");
+  }
+
+  const data = await response.json();
+  return data.post.likes;
 }

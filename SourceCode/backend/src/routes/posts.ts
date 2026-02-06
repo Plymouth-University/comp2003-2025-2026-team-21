@@ -4,8 +4,10 @@ import {
   createPost, 
   getAllPosts, 
   getUserPosts, 
-  deletePost 
+  deletePost,
+  getPostById
 } from "../controllers/postsController";
+import { updatePostLikes } from "../controllers/postsController";
 
 const router = Router();
 
@@ -21,7 +23,13 @@ router.get("/", getAllPosts);
 // Get posts by specific user
 router.get("/user/:userId", getUserPosts);
 
+// Get a single post
+router.get("/:postId", getPostById);
+
 // Delete a post
 router.delete("/:postId", deletePost);
+
+// Update like count for a post
+router.post("/:postId/like", updatePostLikes);
 
 export default router;

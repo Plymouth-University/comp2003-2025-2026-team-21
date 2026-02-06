@@ -40,6 +40,7 @@ model Posts {
   image         Bytes
   imageMimeType String
   createdAt     DateTime @default(now())
+  likes         Int      @default(0)
   authorId      String
   User          User     @relation(fields: [authorId], references: [id])
 }

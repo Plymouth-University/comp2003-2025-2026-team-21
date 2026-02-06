@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,11 +7,15 @@ import {
   Switch,
   Alert,
   Platform,
+  Image,
+  TextInput,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
+import * as ImagePicker from "expo-image-picker";
 import BottomNav from "./components/BottomNav";
+import { getCurrentUser, updateProfileImage, updatePassword } from "../lib/postsApi";
 
 export default function ProfileSettings() {
   const router = useRouter();
@@ -19,11 +23,81 @@ export default function ProfileSettings() {
 
   const [activeTab, setActiveTab] = useState("social");
   const [notifications, setNotifications] = useState(true);
+  const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
 
   const bottomPad = 110 + Math.max(insets.bottom, 0);
 
+  useEffect(() => {
+    loadProfileImage();
+  }, []);
+
+  const loadProfileImage = async () => {
+    try {
+      const user = await getCurrentUser();
+      if (user.profileImage && user.profileImageMimeType) {
+        setProfileImageUri(
+          `data:${user.profileImageMimeType};base64,${user.profileImage}`
+        );
+      }
+    } catch {}
+  };
+
   const placeholder = (label: string) => {
     Alert.alert("Not wired yet", `${label} is a placeholder screen for now.`);
+  };
+
+  const handlePickProfileImage = async () => {
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permissionResult.granted) {
+      Alert.alert(
+        "Permission Required",
+        "Please allow access to your photo library."
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (result.canceled || !result.assets[0]) {
+      return;
+    }
+
+    const nextUri = result.assets[0].uri;
+    const previousUri = profileImageUri;
+
+    try {
+      setUploading(true);
+      setProfileImageUri(nextUri);
+      const updated = await updateProfileImage(nextUri);
+
+      if (updated.profileImage && updated.profileImageMimeType) {
+        setProfileImageUri(
+          `data:${updated.profileImageMimeType};base64,${updated.profileImage}`
+        );
+      }
+
+      Alert.alert("Success", "Profile picture updated.");
+    } catch (error: any) {
+      setProfileImageUri(previousUri || null);
+      Alert.alert(
+        "Error",
+        error.message || "Failed to update profile picture."
+      );
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -53,6 +127,32 @@ export default function ProfileSettings() {
         },
       ]
     );
+  };
+
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      Alert.alert("Missing fields", "Please fill in all password fields.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      Alert.alert("Mismatch", "New passwords do not match.");
+      return;
+    }
+
+    try {
+      setSavingPassword(true);
+      await updatePassword(currentPassword, newPassword, confirmPassword);
+      await SecureStore.setItemAsync("userPassword", newPassword);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      Alert.alert("Success", "Password updated.");
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to update password.");
+    } finally {
+      setSavingPassword(false);
+    }
   };
 
   const confirmDelete = () => {
@@ -85,28 +185,58 @@ export default function ProfileSettings() {
       <View style={[styles.content, { paddingBottom: bottomPad }]}>
         <TouchableOpacity
           style={styles.avatarWrap}
-          onPress={() => placeholder("Edit profile picture")}
+          onPress={handlePickProfileImage}
           activeOpacity={0.85}
+          disabled={uploading}
         >
-          <View style={styles.avatarCircle} />
-          <Text style={styles.editText}>Edit</Text>
+          <View style={styles.avatarCircle}>
+            {profileImageUri ? (
+              <Image source={{ uri: profileImageUri }} style={styles.avatarImage} />
+            ) : null}
+          </View>
+          <Text style={styles.editText}>
+            {uploading ? "Saving..." : "Edit"}
+          </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.row}
-          onPress={() => placeholder("Change username")}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.rowText}>change username</Text>
-        </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.row}
-          onPress={() => placeholder("Change password")}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.rowText}>change password</Text>
-        </TouchableOpacity>
+        <View style={styles.passwordCard}>
+          <Text style={styles.sectionTitle}>Change password</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Current password"
+            placeholderTextColor="rgba(255,255,255,0.6)"
+            value={currentPassword}
+            onChangeText={setCurrentPassword}
+            secureTextEntry
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="New password"
+            placeholderTextColor="rgba(255,255,255,0.6)"
+            value={newPassword}
+            onChangeText={setNewPassword}
+            secureTextEntry
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Re-enter new password"
+            placeholderTextColor="rgba(255,255,255,0.6)"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+          />
+          <TouchableOpacity
+            style={[styles.saveBtn, savingPassword && styles.saveBtnDisabled]}
+            onPress={handleChangePassword}
+            activeOpacity={0.85}
+            disabled={savingPassword}
+          >
+            <Text style={styles.saveBtnText}>
+              {savingPassword ? "Saving..." : "Update password"}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={[styles.row, styles.rowSplit]}>
           <Text style={styles.rowText}>Notifications</Text>
@@ -206,6 +336,12 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.28)",
     borderWidth: 2,
     borderColor: "rgba(255,255,255,0.18)",
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
   },
   editText: {
     marginTop: 10,
@@ -234,6 +370,52 @@ const styles = StyleSheet.create({
   rowText: {
     color: "#fff",
     fontSize: 26,
+    fontWeight: "900",
+  },
+
+  passwordCard: {
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 14,
+    shadowColor: "#000",
+    shadowOpacity: Platform.OS === "ios" ? 0.12 : 0.26,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  sectionTitle: {
+    color: "#fff",
+    fontSize: 22,
+    fontWeight: "900",
+    marginBottom: 12,
+  },
+  input: {
+    backgroundColor: "rgba(0,0,0,0.25)",
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    color: "#fff",
+    fontSize: 16,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
+  },
+  saveBtn: {
+    marginTop: 6,
+    paddingVertical: 12,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
+  },
+  saveBtnDisabled: {
+    opacity: 0.7,
+  },
+  saveBtnText: {
+    textAlign: "center",
+    color: "#fff",
+    fontSize: 18,
     fontWeight: "900",
   },
 

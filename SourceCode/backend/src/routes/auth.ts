@@ -201,15 +201,157 @@ router.get("/me", authMiddleware, async (req: Request, res: Response) => {
         role: true,
         name: true,
         createdAt: true,
+        profileImage: true,
+        profileImageMimeType: true,
       },
     });
 
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    return res.json({ user });
+    const userWithImage = {
+      ...user,
+      profileImage: user.profileImage ? user.profileImage.toString("base64") : null,
+    };
+
+    return res.json({ user: userWithImage });
   } catch (err) {
     console.error("Me endpoint error:", err);
     return res.status(500).json({ error: "Failed to fetch user" });
+  }
+});
+
+/**
+ * GET /auth/user/:userId
+ *
+ * Returns public profile data for a user.
+ */
+router.get("/user/:userId", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        profileImage: true,
+        profileImageMimeType: true,
+        createdAt: true,
+      },
+    });
+
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const userWithImage = {
+      ...user,
+      profileImage: user.profileImage ? user.profileImage.toString("base64") : null,
+    };
+
+    return res.json({ user: userWithImage });
+  } catch (err) {
+    console.error("User profile endpoint error:", err);
+    return res.status(500).json({ error: "Failed to fetch user profile" });
+  }
+});
+
+/**
+ * PUT /auth/profile-image
+ *
+ * Updates the current user's profile image.
+ * Expects: { image: base64, imageMimeType: string }
+ */
+router.put("/profile-image", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const decoded = (req as any).user as JwtPayload | undefined;
+
+    if (!decoded || !decoded.id) {
+      return res.status(401).json({ error: "Unauthenticated" });
+    }
+
+    const { image, imageMimeType } = req.body;
+
+    if (!image || !imageMimeType) {
+      return res.status(400).json({ error: "Missing image or imageMimeType" });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: decoded.id },
+      data: {
+        profileImage: Buffer.from(image, "base64"),
+        profileImageMimeType: imageMimeType,
+      },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        name: true,
+        createdAt: true,
+        profileImage: true,
+        profileImageMimeType: true,
+      },
+    });
+
+    const userWithImage = {
+      ...updatedUser,
+      profileImage: updatedUser.profileImage
+        ? updatedUser.profileImage.toString("base64")
+        : null,
+    };
+
+    return res.json({ user: userWithImage });
+  } catch (err) {
+    console.error("Profile image update error:", err);
+    return res.status(500).json({ error: "Failed to update profile image" });
+  }
+});
+
+/**
+ * PUT /auth/password
+ *
+ * Updates the current user's password.
+ * Expects: { currentPassword, newPassword, confirmPassword }
+ */
+router.put("/password", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const decoded = (req as any).user as JwtPayload | undefined;
+
+    if (!decoded || !decoded.id) {
+      return res.status(401).json({ error: "Unauthenticated" });
+    }
+
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({ error: "Missing password fields" });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ error: "Passwords do not match" });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const isValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isValid) {
+      return res.status(401).json({ error: "Current password is incorrect" });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await prisma.user.update({
+      where: { id: decoded.id },
+      data: { password: hashedPassword },
+    });
+
+    return res.json({ message: "Password updated" });
+  } catch (err) {
+    console.error("Password update error:", err);
+    return res.status(500).json({ error: "Failed to update password" });
   }
 });
 

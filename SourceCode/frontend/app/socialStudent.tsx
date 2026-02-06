@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { useRouter } from "expo-router";
 import BottomNav from "./components/BottomNav";
 import { usePosts } from "./contexts/PostsContext";
+import { getCurrentUser } from "../lib/postsApi";
 import { colours } from "../lib/theme/colours";
 
 export default function SocialStudent() {
@@ -24,12 +25,31 @@ export default function SocialStudent() {
   const [activeTab, setActiveTab] = useState("social");
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentUserAvatarUri, setCurrentUserAvatarUri] = useState<string | null>(null);
+
+  const loadCurrentUserAvatar = useCallback(async () => {
+    try {
+      const user = await getCurrentUser();
+      if (user.profileImage && user.profileImageMimeType) {
+        setCurrentUserAvatarUri(
+          `data:${user.profileImageMimeType};base64,${user.profileImage}`
+        );
+      } else {
+        setCurrentUserAvatarUri(null);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    loadCurrentUserAvatar();
+  }, [loadCurrentUserAvatar]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     await refreshPosts();
+    await loadCurrentUserAvatar();
     setRefreshing(false);
-  }, [refreshPosts]);
+  }, [refreshPosts, loadCurrentUserAvatar]);
 
   const filteredPosts = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -63,7 +83,14 @@ export default function SocialStudent() {
           onPress={() => router.push("/profileStudent")}
           activeOpacity={0.85}
         >
-          <View style={styles.profileCircle} />
+          <View style={styles.profileCircle}>
+            {currentUserAvatarUri ? (
+              <RNImage
+                source={{ uri: currentUserAvatarUri }}
+                style={styles.profileImage}
+              />
+            ) : null}
+          </View>
         </TouchableOpacity>
       </View>
 
@@ -83,7 +110,23 @@ export default function SocialStudent() {
           <View key={post.id} style={styles.postCard}>
             <View style={styles.postHeader}>
               <View style={styles.userRow}>
-                <View style={styles.userAvatar} />
+                <TouchableOpacity
+                  style={styles.userAvatar}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/profileStudent",
+                      params: { userId: post.userId, username: post.username },
+                    })
+                  }
+                  activeOpacity={0.85}
+                >
+                  {post.userAvatarUri ? (
+                    <RNImage
+                      source={{ uri: post.userAvatarUri }}
+                      style={styles.userAvatarImage}
+                    />
+                  ) : null}
+                </TouchableOpacity>
                 <Text style={styles.username}>{post.username}</Text>
               </View>
             </View>
@@ -106,6 +149,8 @@ export default function SocialStudent() {
                   ♥
                 </Text>
               </TouchableOpacity>
+
+              <Text style={styles.likeCount}>{post.likeCount}</Text>
 
               <Text style={styles.captionText} numberOfLines={2}>
                 {post.caption}
@@ -190,8 +235,13 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 999,
     backgroundColor: "rgba(255,255,255,0.28)",
-    borderWidth: 1,
     borderColor: colours.border,
+    overflow: "hidden",
+  },
+  profileImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
   },
 
   scrollArea: { flex: 1, paddingHorizontal: 16 },
@@ -207,6 +257,12 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.22)",
     borderWidth: 1,
     borderColor: colours.border,
+    overflow: "hidden",
+  },
+  userAvatarImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
   },
   username: { color: colours.textPrimary, fontSize: 16, fontWeight: "800" },
 
@@ -245,6 +301,7 @@ const styles = StyleSheet.create({
   },
   likeIcon: { fontSize: 22, color: colours.textSecondary, fontWeight: "900" },
   likeIconOn: { color: colours.success },
+  likeCount: { color: colours.textSecondary, fontSize: 16, fontWeight: "800" },
   captionText: { flex: 1, color: colours.textPrimary, fontSize: 18, fontWeight: "800" },
 
   emptyCard: {
