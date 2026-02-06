@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { usePosts } from "./contexts/PostsContext";
+import { colours } from "../lib/theme/colours";
 
 export default function CreatePost() {
   const router = useRouter();
@@ -22,10 +23,14 @@ export default function CreatePost() {
   const [imageUri, setImageUri] = useState<string | null>(null);
 
   const pickImage = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (permissionResult.granted === false) {
-      Alert.alert("Permission Required", "Please allow access to your photo library.");
+      Alert.alert(
+        "Permission Required",
+        "Please allow access to your photo library."
+      );
       return;
     }
 
@@ -77,7 +82,10 @@ export default function CreatePost() {
         { text: "OK", onPress: () => router.back() },
       ]);
     } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to create post. Please try again.");
+      Alert.alert(
+        "Error",
+        error.message || "Failed to create post. Please try again."
+      );
     }
   };
 
@@ -117,20 +125,12 @@ export default function CreatePost() {
         </View>
 
         <View style={styles.buttonRow}>
-          <TouchableOpacity
-            style={styles.imageBtn}
-            onPress={pickImage}
-            activeOpacity={0.8}
-          >
+          <TouchableOpacity style={styles.imageBtn} onPress={pickImage} activeOpacity={0.8}>
             <Text style={styles.imageBtnIcon}>🖼️</Text>
             <Text style={styles.imageBtnText}>Choose from Library</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.imageBtn}
-            onPress={takePhoto}
-            activeOpacity={0.8}
-          >
+          <TouchableOpacity style={styles.imageBtn} onPress={takePhoto} activeOpacity={0.8}>
             <Text style={styles.imageBtnIcon}>📸</Text>
             <Text style={styles.imageBtnText}>Take Photo</Text>
           </TouchableOpacity>
@@ -141,20 +141,21 @@ export default function CreatePost() {
           <TextInput
             style={styles.captionInput}
             placeholder="Write a caption..."
-            placeholderTextColor="rgba(255,255,255,0.4)"
+            placeholderTextColor={colours.textMuted}
             value={caption}
             onChangeText={setCaption}
             multiline
             maxLength={500}
             textAlignVertical="top"
           />
-          <Text style={styles.charCount}>
-            {caption.length}/500
-          </Text>
+          <Text style={styles.charCount}>{caption.length}/500</Text>
         </View>
 
         <TouchableOpacity
-          style={[styles.postBtn, (!imageUri || !caption.trim()) && styles.postBtnDisabled]}
+          style={[
+            styles.postBtn,
+            (!imageUri || !caption.trim()) && styles.postBtnDisabled,
+          ]}
           onPress={handlePost}
           activeOpacity={0.8}
           disabled={!imageUri || !caption.trim()}
@@ -169,7 +170,7 @@ export default function CreatePost() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#3c0303ff",
+    backgroundColor: colours.background,
   },
 
   header: {
@@ -179,25 +180,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.1)",
+    borderBottomColor: colours.border,
+    backgroundColor: colours.background,
   },
   backBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.1)",
+    backgroundColor: colours.glass,
+    borderWidth: 1,
+    borderColor: colours.border,
     justifyContent: "center",
     alignItems: "center",
   },
   backIcon: {
     fontSize: 24,
-    color: "#fff",
+    color: colours.textPrimary,
     fontWeight: "bold",
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: "800",
-    color: "#fff",
+    color: colours.textPrimary,
   },
   headerSpacer: {
     width: 40,
@@ -217,7 +221,9 @@ const styles = StyleSheet.create({
     position: "relative",
     borderRadius: 20,
     overflow: "hidden",
-    backgroundColor: "rgba(0,0,0,0.3)",
+    backgroundColor: colours.surface,
+    borderWidth: 1,
+    borderColor: colours.border,
   },
   imagePreview: {
     width: "100%",
@@ -231,22 +237,24 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "rgba(0,0,0,0.7)",
+    backgroundColor: "rgba(0,0,0,0.65)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
     justifyContent: "center",
     alignItems: "center",
   },
   removeImageIcon: {
     fontSize: 28,
-    color: "#fff",
+    color: colours.textPrimary,
     fontWeight: "bold",
   },
   imagePlaceholder: {
     height: 300,
     borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: colours.glass,
     borderWidth: 2,
     borderStyle: "dashed",
-    borderColor: "rgba(255,255,255,0.2)",
+    borderColor: "rgba(255,255,255,0.18)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -256,7 +264,7 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     fontSize: 16,
-    color: "rgba(255,255,255,0.5)",
+    color: colours.textMuted,
     fontWeight: "600",
   },
 
@@ -267,7 +275,9 @@ const styles = StyleSheet.create({
   },
   imageBtn: {
     flex: 1,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    backgroundColor: colours.surface,
+    borderWidth: 1,
+    borderColor: colours.border,
     borderRadius: 16,
     padding: 16,
     alignItems: "center",
@@ -284,7 +294,7 @@ const styles = StyleSheet.create({
   imageBtnText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#fff",
+    color: colours.textPrimary,
     textAlign: "center",
   },
 
@@ -294,44 +304,44 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#fff",
+    color: colours.textPrimary,
     marginBottom: 8,
   },
   captionInput: {
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: colours.surface,
     borderRadius: 16,
     padding: 14,
-    color: "#fff",
+    color: colours.textPrimary,
     fontSize: 15,
     minHeight: 120,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
+    borderColor: colours.border,
   },
   charCount: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.5)",
+    color: colours.textMuted,
     textAlign: "right",
     marginTop: 6,
   },
 
   postBtn: {
-    backgroundColor: "#00c853",
+    backgroundColor: colours.primary,
     borderRadius: 16,
     padding: 18,
     alignItems: "center",
-    shadowColor: "#00c853",
+    shadowColor: colours.primary,
     shadowOpacity: Platform.OS === "ios" ? 0.4 : 0.6,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 8,
     elevation: 6,
   },
   postBtnDisabled: {
-    backgroundColor: "rgba(255,255,255,0.15)",
+    backgroundColor: colours.surfaceElevated,
     shadowOpacity: 0,
   },
   postBtnText: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#fff",
+    color: colours.textPrimary,
   },
 });

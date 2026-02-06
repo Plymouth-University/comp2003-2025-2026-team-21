@@ -14,6 +14,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { useRouter } from "expo-router";
 import BottomNav from "./components/BottomNav";
 import { usePosts } from "./contexts/PostsContext";
+import { colours } from "../lib/theme/colours";
 
 export default function SocialStudent() {
   const router = useRouter();
@@ -23,7 +24,6 @@ export default function SocialStudent() {
   const [activeTab, setActiveTab] = useState("social");
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -50,7 +50,7 @@ export default function SocialStudent() {
           <TextInput
             style={styles.searchInput}
             placeholder="Search"
-            placeholderTextColor="rgba(255,255,255,0.55)"
+            placeholderTextColor={colours.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
             autoCapitalize="none"
@@ -72,7 +72,11 @@ export default function SocialStudent() {
         contentContainerStyle={{ paddingTop: 12, paddingBottom: bottomPad }}
         keyboardShouldPersistTaps="handled"
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colours.textSecondary}
+          />
         }
       >
         {filteredPosts.map((post) => (
@@ -145,7 +149,7 @@ export default function SocialStudent() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#3c0303ff" },
+  container: { flex: 1, backgroundColor: colours.background },
 
   topBar: {
     flexDirection: "row",
@@ -160,20 +164,24 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 44,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.10)",
+    backgroundColor: colours.glass,
+    borderWidth: 1,
+    borderColor: colours.border,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 14,
     justifyContent: "space-between",
   },
-  searchInput: { flex: 1, color: "#fff", fontSize: 15, paddingRight: 10 },
-  searchIcon: { color: "rgba(255,255,255,0.7)", fontSize: 18, marginLeft: 8 },
+  searchInput: { flex: 1, color: colours.textPrimary, fontSize: 15, paddingRight: 10 },
+  searchIcon: { color: colours.textSecondary, fontSize: 18, marginLeft: 8 },
 
   profileBtn: {
     width: 44,
     height: 44,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.10)",
+    backgroundColor: colours.glass,
+    borderWidth: 1,
+    borderColor: colours.border,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -181,7 +189,9 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.35)",
+    backgroundColor: "rgba(255,255,255,0.28)",
+    borderWidth: 1,
+    borderColor: colours.border,
   },
 
   scrollArea: { flex: 1, paddingHorizontal: 16 },
@@ -194,14 +204,18 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.35)",
+    backgroundColor: "rgba(255,255,255,0.22)",
+    borderWidth: 1,
+    borderColor: colours.border,
   },
-  username: { color: "#fff", fontSize: 16, fontWeight: "800" },
+  username: { color: colours.textPrimary, fontSize: 16, fontWeight: "800" },
 
   mediaCard: {
     height: 380,
     borderRadius: 26,
-    backgroundColor: "rgba(0,0,0,0.35)",
+    backgroundColor: colours.surface,
+    borderWidth: 1,
+    borderColor: colours.border,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
@@ -216,29 +230,33 @@ const styles = StyleSheet.create({
     height: "100%",
     resizeMode: "cover",
   },
-  mediaLabel: { color: "rgba(255,255,255,0.65)", fontSize: 18, fontWeight: "800" },
+  mediaLabel: { color: colours.textMuted, fontSize: 18, fontWeight: "800" },
 
   captionRow: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 12 },
   likeBtn: {
     width: 46,
     height: 46,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.10)",
+    backgroundColor: colours.glass,
+    borderWidth: 1,
+    borderColor: colours.border,
     justifyContent: "center",
     alignItems: "center",
   },
-  likeIcon: { fontSize: 22, color: "rgba(255,255,255,0.65)", fontWeight: "900" },
-  likeIconOn: { color: "#00c853" },
-  captionText: { flex: 1, color: "#fff", fontSize: 18, fontWeight: "800" },
+  likeIcon: { fontSize: 22, color: colours.textSecondary, fontWeight: "900" },
+  likeIconOn: { color: colours.success },
+  captionText: { flex: 1, color: colours.textPrimary, fontSize: 18, fontWeight: "800" },
 
   emptyCard: {
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: colours.glass,
+    borderWidth: 1,
+    borderColor: colours.border,
     borderRadius: 16,
     padding: 14,
     marginTop: 10,
   },
-  emptyTitle: { color: "#fff", fontWeight: "900", fontSize: 16, marginBottom: 4 },
-  emptyText: { color: "rgba(255,255,255,0.75)" },
+  emptyTitle: { color: colours.textPrimary, fontWeight: "900", fontSize: 16, marginBottom: 4 },
+  emptyText: { color: colours.textSecondary },
 
   floatingButton: {
     position: "absolute",
@@ -247,7 +265,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: "#00c853",
+    backgroundColor: colours.primary,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
@@ -255,10 +273,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 8,
     elevation: 8,
+    borderWidth: 1,
+    borderColor: colours.border,
   },
   floatingButtonIcon: {
     fontSize: 32,
-    color: "#fff",
+    color: colours.textPrimary,
     fontWeight: "700",
     lineHeight: 32,
   },

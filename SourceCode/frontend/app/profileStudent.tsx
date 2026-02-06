@@ -1,20 +1,19 @@
-import React, { useMemo, useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   RefreshControl,
-  Platform,
   TouchableOpacity,
   Image,
-  Dimensions,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import BottomNav from "./components/BottomNav";
 import { getUserPosts, getCurrentUser, Post } from "../lib/postsApi";
+import { colours } from "../lib/theme/colours";
 
 export default function ProfileStudent() {
   const router = useRouter();
@@ -29,7 +28,6 @@ export default function ProfileStudent() {
 
   const followers = 100;
 
-  // Load user info and their posts
   useEffect(() => {
     loadUserProfile();
   }, []);
@@ -37,55 +35,38 @@ export default function ProfileStudent() {
   const loadUserProfile = async () => {
     try {
       setLoading(true);
-      
-      let finalUsername = null;
-      let finalUserId = null;
-      
-      // Try 1: Get from backend
+
+      let finalUsername: string | null = null;
+      let finalUserId: string | null = null;
+
       try {
         const user = await getCurrentUser();
-        console.log("Fetched user from backend:", user);
-        
-        if (user.username) {
-          finalUsername = user.username;
-        }
-        finalUserId = user.id;
-      } catch (error) {
-        console.log("Failed to fetch from backend, will try other sources");
-      }
-      
-      // Try 2: Get from SecureStore (saved during login/registration)
+        if (user?.username) finalUsername = user.username;
+        if (user?.id) finalUserId = user.id;
+      } catch {}
+
       if (!finalUsername) {
         const storedUsername = await SecureStore.getItemAsync("username");
-        if (storedUsername) {
-          console.log("Got username from SecureStore:", storedUsername);
-          finalUsername = storedUsername;
-        }
+        if (storedUsername) finalUsername = storedUsername;
       }
-      
+
       if (!finalUserId) {
         const storedUserId = await SecureStore.getItemAsync("userId");
-        if (storedUserId) {
-          finalUserId = storedUserId;
-        }
+        if (storedUserId) finalUserId = storedUserId;
       }
-      
-      // Fetch user's posts
+
       if (finalUserId) {
         setUserId(finalUserId);
         const posts = await getUserPosts(finalUserId);
         setUserPosts(posts);
-        
-        // Try 3: Get username from posts if still not found
-        if (!finalUsername && posts.length > 0 && posts[0].User?.username) {
+
+        if (!finalUsername && posts.length > 0 && posts[0]?.User?.username) {
           finalUsername = posts[0].User.username;
-          console.log("Got username from post:", finalUsername);
         }
       }
-      
+
       setUsername(finalUsername || "Username not available");
-    } catch (error) {
-      console.error("Error loading user profile:", error);
+    } catch {
       setUsername("Error loading profile");
     } finally {
       setLoading(false);
@@ -137,9 +118,7 @@ export default function ProfileStudent() {
 
         <Text style={styles.followersText}>Followers: {followers}</Text>
 
-        <Text style={styles.postsLabel}>
-          Posts: {userPosts.length}
-        </Text>
+        <Text style={styles.postsLabel}>Posts: {userPosts.length}</Text>
 
         {loading ? (
           <Text style={styles.loadingText}>Loading posts...</Text>
@@ -148,9 +127,15 @@ export default function ProfileStudent() {
         ) : (
           <View style={styles.grid}>
             {userPosts.map((post) => (
-              <TouchableOpacity key={post.id} style={styles.tile} activeOpacity={0.8}>
+              <TouchableOpacity
+                key={post.id}
+                style={styles.tile}
+                activeOpacity={0.8}
+              >
                 <Image
-                  source={{ uri: `data:${post.imageMimeType};base64,${post.image}` }}
+                  source={{
+                    uri: `data:${post.imageMimeType};base64,${post.image}`,
+                  }}
                   style={styles.postImage}
                   resizeMode="cover"
                 />
@@ -179,7 +164,7 @@ export default function ProfileStudent() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#3c0303ff" },
+  container: { flex: 1, backgroundColor: colours.background },
 
   headerRow: {
     flexDirection: "row",
@@ -189,19 +174,22 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     justifyContent: "space-between",
     gap: 12,
+    backgroundColor: colours.background,
   },
 
   backBtn: {
     width: 44,
     height: 44,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.10)",
+    backgroundColor: colours.glass,
+    borderWidth: 1,
+    borderColor: colours.border,
     justifyContent: "center",
     alignItems: "center",
   },
 
   backIcon: {
-    color: "#fff",
+    color: colours.textPrimary,
     fontSize: 34,
     lineHeight: 34,
     marginTop: -2,
@@ -209,7 +197,7 @@ const styles = StyleSheet.create({
   },
 
   headerTitle: {
-    color: "#fff",
+    color: colours.textPrimary,
     fontSize: 34,
     fontWeight: "900",
     textAlign: "center",
@@ -220,13 +208,15 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.10)",
+    backgroundColor: colours.glass,
+    borderWidth: 1,
+    borderColor: colours.border,
     justifyContent: "center",
     alignItems: "center",
   },
 
   settingsIcon: {
-    color: "rgba(255,255,255,0.85)",
+    color: colours.textSecondary,
     fontSize: 22,
     fontWeight: "900",
   },
@@ -239,14 +229,14 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.28)",
+    backgroundColor: colours.surface,
     borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.18)",
+    borderColor: colours.border,
   },
 
   followersText: {
     textAlign: "center",
-    color: "#fff",
+    color: colours.textPrimary,
     fontSize: 28,
     fontWeight: "900",
     marginBottom: 18,
@@ -254,7 +244,7 @@ const styles = StyleSheet.create({
 
   postsLabel: {
     textAlign: "center",
-    color: "rgba(255,255,255,0.9)",
+    color: colours.textSecondary,
     fontSize: 18,
     fontWeight: "900",
     marginBottom: 14,
@@ -268,9 +258,11 @@ const styles = StyleSheet.create({
   },
 
   tile: {
-    width: `${(100 / 3) - 0.7}%`,
+    width: `${100 / 3 - 0.7}%`,
     aspectRatio: 1,
-    backgroundColor: "rgba(0,0,0,0.35)",
+    backgroundColor: colours.surface,
+    borderWidth: 1,
+    borderColor: colours.border,
     overflow: "hidden",
   },
 
@@ -281,14 +273,14 @@ const styles = StyleSheet.create({
 
   loadingText: {
     textAlign: "center",
-    color: "rgba(255,255,255,0.6)",
+    color: colours.textMuted,
     fontSize: 16,
     marginTop: 20,
   },
 
   emptyText: {
     textAlign: "center",
-    color: "rgba(255,255,255,0.6)",
+    color: colours.textMuted,
     fontSize: 16,
     marginTop: 20,
   },
