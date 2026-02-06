@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 
-'use client';
 
 
 export default function EventFeed() {

@@ -11,9 +11,9 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import BottomNav from "./components/BottomNav";
-import { getUserPosts, getCurrentUser, Post } from "../lib/postsApi";
-import { colours } from "../lib/theme/colours";
+import BottomNav from "../components/BottomNav";
+import { getUserPosts, getCurrentUser, Post } from "../../lib/postsApi";
+import { colours } from "../../lib/theme/colours";
 
 export default function ProfileStudent() {
   const router = useRouter();
@@ -98,7 +98,7 @@ export default function ProfileStudent() {
 
         <TouchableOpacity
           style={styles.settingsBtn}
-          onPress={() => router.push("/profileStudentSettings")}
+          onPress={() => router.push("/Students/profileStudentSettings")}
           activeOpacity={0.85}
         >
           <Text style={styles.settingsIcon}>⚙</Text>
@@ -152,10 +152,10 @@ export default function ProfileStudent() {
             handleRefresh();
           } else {
             setActiveTab(tab);
-            if (tab === "events") router.replace("/EventFeed");
-            if (tab === "tickets") router.push("/myTickets");
-            if (tab === "social") router.replace("/socialStudent");
-            if (tab === "add") router.push("/EventFeed");
+            if (tab === "events") router.replace("/Students/EventFeed");
+            if (tab === "tickets") router.push("/Students/myTickets");
+            if (tab === "social") router.replace("/Students/socialStudent");
+            if (tab === "add") router.push("/Students/EventFeed");
           }
         }}
       />

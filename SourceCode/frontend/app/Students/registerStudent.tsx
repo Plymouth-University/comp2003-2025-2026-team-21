@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { API_URL } from "../lib/api";
+import { API_URL } from "../../lib/api";
 
 export default function RegisterStudent() {
   const router = useRouter();
@@ -127,7 +127,7 @@ export default function RegisterStudent() {
       await SecureStore.setItemAsync("username", user.username);
 
       Alert.alert("Success", "Account created successfully!");
-      router.replace("/EventFeed");
+      router.replace("/Students/loginStudent");
     } catch (err: any) {
       Alert.alert("Registration failed", err?.message || "Please try again.");
     } finally {
@@ -137,7 +137,7 @@ export default function RegisterStudent() {
 
   return (
     <ImageBackground
-      source={require("../assets/images/Space.png")}
+      source={require("../../assets/images/Space.png")}
       style={styles.container}
       imageStyle={{ resizeMode: "cover" }}
     >

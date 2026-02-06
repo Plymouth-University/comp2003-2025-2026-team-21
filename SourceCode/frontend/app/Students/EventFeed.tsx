@@ -1,11 +1,11 @@
 import React, { useState, useCallback } from "react";
 import { View, Text, ScrollView, RefreshControl, Platform, StyleSheet } from "react-native";
-import FilterBar from "./components/FilterBar";
-import BottomNav from "./components/BottomNav";
+import FilterBar from "../components/FilterBar";
+import BottomNav from "../components/BottomNav";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { colours } from "../lib/theme/colours";
-import { Spacing } from "../lib/theme/spacing";
+import { colours } from "../../lib/theme/colours";
+import { Spacing } from "../../lib/theme/spacing";
 
 export default function EventFeed() {
   const router = useRouter();
@@ -79,9 +79,9 @@ export default function EventFeed() {
           if (tab === activeTab) handleRefresh();
           else {
             setActiveTab(tab);
-            if (tab === "events") router.replace("/EventFeed");
-            if (tab === "tickets") router.push("/myTickets");
-            if (tab === "social") router.push("/socialStudent");
+            if (tab === "events") router.replace("/Students/EventFeed");
+            if (tab === "tickets") router.push("/Students/myTickets");
+            if (tab === "social") router.push("/Students/socialStudent");
           }
         }}
       />

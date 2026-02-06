@@ -11,7 +11,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import BottomNav from "./components/BottomNav";
+import BottomNav from "../components/BottomNav";
 
 export default function ProfileSettings() {
   const router = useRouter();
@@ -45,7 +45,7 @@ export default function ProfileSettings() {
               await SecureStore.deleteItemAsync("userPassword");
               
               // Navigate back to login
-              router.replace("/");
+              router.replace("/Students/loginStudent");
             } catch (error) {
               Alert.alert("Error", "Failed to logout. Please try again.");
             }
@@ -142,10 +142,10 @@ export default function ProfileSettings() {
         activeTab={activeTab}
         onTabPress={(tab) => {
           setActiveTab(tab);
-          if (tab === "events") router.replace("/EventFeed");
-          if (tab === "tickets") router.push("/myTickets");
-          if (tab === "social") router.replace("/socialStudent");
-          if (tab === "add") router.push("/EventFeed");
+          if (tab === "events") router.replace("/Students/EventFeed");
+          if (tab === "tickets") router.push("/Students/myTickets");
+          if (tab === "social") router.replace("/Students/socialStudent");
+          if (tab === "add") router.push("/Students/EventFeed");
         }}
       />
     </SafeAreaView>
