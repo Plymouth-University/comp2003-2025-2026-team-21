@@ -9,13 +9,15 @@ import {
   Platform,
   Image,
   TextInput,
+  ScrollView,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import * as ImagePicker from "expo-image-picker";
-import BottomNav from "./components/BottomNav";
-import { getCurrentUser, updateProfileImage, updatePassword } from "../lib/postsApi";
+import BottomNav from "../components/BottomNav";
+import { getCurrentUser, updateProfileImage, updatePassword } from "../../lib/postsApi";
+import { colours } from "../../lib/theme/colours";
 
 export default function ProfileSettings() {
   const router = useRouter();
@@ -47,10 +49,6 @@ export default function ProfileSettings() {
     } catch {}
   };
 
-  const placeholder = (label: string) => {
-    Alert.alert("Not wired yet", `${label} is a placeholder screen for now.`);
-  };
-
   const handlePickProfileImage = async () => {
     const permissionResult =
       await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -70,9 +68,7 @@ export default function ProfileSettings() {
       quality: 0.8,
     });
 
-    if (result.canceled || !result.assets[0]) {
-      return;
-    }
+    if (result.canceled || !result.assets[0]) return;
 
     const nextUri = result.assets[0].uri;
     const previousUri = profileImageUri;
@@ -106,22 +102,19 @@ export default function ProfileSettings() {
       "Are you sure you want to logout?",
       [
         { text: "Cancel", style: "cancel" },
-        { 
-          text: "Logout", 
-          style: "destructive", 
+        {
+          text: "Logout",
+          style: "destructive",
           onPress: async () => {
             try {
-              // Clear all stored data
               await SecureStore.deleteItemAsync("authToken");
               await SecureStore.deleteItemAsync("userId");
               await SecureStore.deleteItemAsync("username");
               await SecureStore.deleteItemAsync("userEmail");
               await SecureStore.deleteItemAsync("userPassword");
-              
-              // Navigate back to login
               router.replace("/");
-            } catch (error) {
-              Alert.alert("Error", "Failed to logout. Please try again.");
+            } catch {
+              Alert.alert("Error", "Failed to logout.");
             }
           }
         },
@@ -158,7 +151,7 @@ export default function ProfileSettings() {
   const confirmDelete = () => {
     Alert.alert(
       "Delete account",
-      "This is a placeholder. Hook this to the backend later.",
+      "This is a placeholder.",
       [
         { text: "Cancel", style: "cancel" },
         { text: "Delete", style: "destructive", onPress: () => {} },
@@ -178,11 +171,14 @@ export default function ProfileSettings() {
         </TouchableOpacity>
 
         <Text style={styles.title}>settings</Text>
-
         <View style={{ width: 44 }} />
       </View>
 
-      <View style={[styles.content, { paddingBottom: bottomPad }]}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={{ paddingBottom: bottomPad }}
+        showsVerticalScrollIndicator={false}
+      >
         <TouchableOpacity
           style={styles.avatarWrap}
           onPress={handlePickProfileImage}
@@ -190,46 +186,48 @@ export default function ProfileSettings() {
           disabled={uploading}
         >
           <View style={styles.avatarCircle}>
-            {profileImageUri ? (
+            {profileImageUri && (
               <Image source={{ uri: profileImageUri }} style={styles.avatarImage} />
-            ) : null}
+            )}
           </View>
           <Text style={styles.editText}>
             {uploading ? "Saving..." : "Edit"}
           </Text>
         </TouchableOpacity>
 
-
         <View style={styles.passwordCard}>
           <Text style={styles.sectionTitle}>Change password</Text>
+
           <TextInput
             style={styles.input}
             placeholder="Current password"
-            placeholderTextColor="rgba(255,255,255,0.6)"
+            placeholderTextColor={colours.textMuted}
             value={currentPassword}
             onChangeText={setCurrentPassword}
             secureTextEntry
           />
+
           <TextInput
             style={styles.input}
             placeholder="New password"
-            placeholderTextColor="rgba(255,255,255,0.6)"
+            placeholderTextColor={colours.textMuted}
             value={newPassword}
             onChangeText={setNewPassword}
             secureTextEntry
           />
+
           <TextInput
             style={styles.input}
             placeholder="Re-enter new password"
-            placeholderTextColor="rgba(255,255,255,0.6)"
+            placeholderTextColor={colours.textMuted}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry
           />
+
           <TouchableOpacity
             style={[styles.saveBtn, savingPassword && styles.saveBtnDisabled]}
             onPress={handleChangePassword}
-            activeOpacity={0.85}
             disabled={savingPassword}
           >
             <Text style={styles.saveBtnText}>
@@ -243,39 +241,30 @@ export default function ProfileSettings() {
           <Switch
             value={notifications}
             onValueChange={setNotifications}
-            trackColor={{ false: "rgba(255,255,255,0.25)", true: "#3ad6c6" }}
-            thumbColor={Platform.OS === "android" ? "#ffffff" : undefined}
-            ios_backgroundColor="rgba(255,255,255,0.25)"
+            trackColor={{ false: colours.border, true: colours.secondary }}
+            thumbColor={Platform.OS === "android" ? colours.textPrimary : undefined}
+            ios_backgroundColor={colours.border}
           />
         </View>
 
         <View style={{ flex: 1 }} />
 
-        <TouchableOpacity
-          style={styles.logoutBtn}
-          onPress={handleLogout}
-          activeOpacity={0.85}
-        >
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Text style={styles.logoutText}>logout</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.deleteBtn}
-          onPress={confirmDelete}
-          activeOpacity={0.85}
-        >
+        <TouchableOpacity style={styles.deleteBtn} onPress={confirmDelete}>
           <Text style={styles.deleteText}>delete account</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
 
       <BottomNav
         activeTab={activeTab}
         onTabPress={(tab) => {
           setActiveTab(tab);
-          if (tab === "events") router.replace("/EventFeed");
-          if (tab === "tickets") router.push("/myTickets");
-          if (tab === "social") router.replace("/socialStudent");
-          if (tab === "add") router.push("/EventFeed");
+          if (tab === "events") router.replace("/Students/EventFeed");
+          if (tab === "tickets") router.push("/Students/myTickets");
+          if (tab === "social") router.replace("/Students/socialStudent");
         }}
       />
     </SafeAreaView>
@@ -283,7 +272,7 @@ export default function ProfileSettings() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#3c0303ff" },
+  container: { flex: 1, backgroundColor: colours.background },
 
   header: {
     flexDirection: "row",
@@ -297,12 +286,15 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.10)",
+    backgroundColor: colours.glass,
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: colours.border,
   },
+
   backIcon: {
-    color: "#fff",
+    color: colours.textPrimary,
     fontSize: 34,
     lineHeight: 34,
     marginTop: -2,
@@ -312,7 +304,7 @@ const styles = StyleSheet.create({
   title: {
     flex: 1,
     textAlign: "center",
-    color: "#fff",
+    color: colours.textPrimary,
     fontSize: 34,
     fontWeight: "900",
     marginRight: 44,
@@ -329,92 +321,94 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 22,
   },
+
   avatarCircle: {
     width: 130,
     height: 130,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.28)",
+    backgroundColor: colours.surfaceElevated,
     borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.18)",
+    borderColor: colours.border,
     overflow: "hidden",
   },
+
   avatarImage: {
     width: "100%",
     height: "100%",
     resizeMode: "cover",
   },
+
   editText: {
     marginTop: 10,
-    color: "#fff",
+    color: colours.textPrimary,
     fontSize: 20,
     fontWeight: "900",
   },
 
   row: {
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: colours.glass,
     borderRadius: 18,
     paddingVertical: 18,
     paddingHorizontal: 18,
     marginBottom: 14,
-    shadowColor: "#000",
-    shadowOpacity: Platform.OS === "ios" ? 0.12 : 0.26,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
-    elevation: 4,
+    borderWidth: 1,
+    borderColor: colours.border,
   },
+
   rowSplit: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
+
   rowText: {
-    color: "#fff",
+    color: colours.textPrimary,
     fontSize: 26,
     fontWeight: "900",
   },
 
   passwordCard: {
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: colours.glass,
     borderRadius: 18,
     padding: 18,
     marginBottom: 14,
-    shadowColor: "#000",
-    shadowOpacity: Platform.OS === "ios" ? 0.12 : 0.26,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
-    elevation: 4,
+    borderWidth: 1,
+    borderColor: colours.border,
   },
+
   sectionTitle: {
-    color: "#fff",
+    color: colours.textPrimary,
     fontSize: 22,
     fontWeight: "900",
     marginBottom: 12,
   },
+
   input: {
-    backgroundColor: "rgba(0,0,0,0.25)",
+    backgroundColor: colours.surface,
     borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 14,
-    color: "#fff",
+    color: colours.textPrimary,
     fontSize: 16,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
+    borderColor: colours.border,
   },
+
   saveBtn: {
     marginTop: 6,
     paddingVertical: 12,
     borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.18)",
+    backgroundColor: colours.primary,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
+    borderColor: colours.border,
   },
-  saveBtnDisabled: {
-    opacity: 0.7,
-  },
+
+  saveBtnDisabled: { opacity: 0.7 },
+
   saveBtnText: {
     textAlign: "center",
-    color: "#fff",
+    color: colours.textPrimary,
     fontSize: 18,
     fontWeight: "900",
   },
@@ -423,13 +417,14 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 18,
     borderRadius: 18,
-    backgroundColor: "rgba(255,165,0,0.15)",
+    backgroundColor: colours.glass,
     marginBottom: 14,
     borderWidth: 2,
-    borderColor: "rgba(255,165,0,0.3)",
+    borderColor: colours.secondary,
   },
+
   logoutText: {
-    color: "#ffa500",
+    color: colours.secondary,
     fontSize: 26,
     fontWeight: "900",
     textAlign: "center",
@@ -439,11 +434,14 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 18,
     borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: colours.glass,
     marginBottom: 14,
+    borderWidth: 1,
+    borderColor: colours.border,
   },
+
   deleteText: {
-    color: "#fff",
+    color: colours.textPrimary,
     fontSize: 26,
     fontWeight: "900",
   },

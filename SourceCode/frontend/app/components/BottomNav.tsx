@@ -1,24 +1,17 @@
-import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colours } from "../../lib/theme/colours";
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { colours } from '../../lib/theme/colours';
 
 interface Props {
   activeTab: string;
   onTabPress: (tab: string) => void;
 }
 
-const TABS = ["events", "tickets", "social"];
+const TABS = ['events', 'tickets', 'social'];
 
 export default function BottomNav({ activeTab, onTabPress }: Props) {
-  const insets = useSafeAreaInsets();
-  const bottomPad = Math.max(insets.bottom, 0);
-
   return (
-    <View
-      style={[styles.bottomNav, { paddingBottom: bottomPad }]}
-      accessibilityRole="tablist"
-    >
+    <View style={styles.bottomNav} accessibilityRole="tablist">
       {TABS.map((tab, idx) => (
         <TouchableOpacity
           key={tab}
@@ -30,7 +23,6 @@ export default function BottomNav({ activeTab, onTabPress }: Props) {
             idx !== 0 && styles.navButtonSeparator,
             activeTab === tab && styles.navButtonActive,
           ]}
-          activeOpacity={0.85}
         >
           <Text
             style={[
@@ -46,39 +38,42 @@ export default function BottomNav({ activeTab, onTabPress }: Props) {
   );
 }
 
-const NAV_HEIGHT = 64;
-
 const styles = StyleSheet.create({
   bottomNav: {
-    flexDirection: "row",
+    flexDirection: 'row',
     borderTopWidth: 1,
-    borderTopColor: colours.border,
-    backgroundColor: colours.surface,
-    height: NAV_HEIGHT,
-    paddingVertical: 0,
-    paddingHorizontal: 0,
+    backgroundColor: colours.surface, // ✅ replaced
+    borderTopColor: colours.border,   // ✅ replaced
+    height: 64,                       // 🔒 unchanged
+    paddingVertical: 0,               // 🔒 unchanged
+    paddingHorizontal: 0,             // 🔒 unchanged
   },
+
   navButton: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    height: "100%",
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',        // 🔒 unchanged
     borderRadius: 0,
     marginHorizontal: 0,
-    backgroundColor: "transparent",
+    backgroundColor: 'transparent',
   },
+
   navButtonActive: {
-    backgroundColor: colours.surfaceElevated,
+    backgroundColor: colours.surfaceElevated, // ✅ replaced
   },
+
   navButtonText: {
-    color: colours.textMuted,
-    fontWeight: "600",
+    color: colours.textMuted, // ✅ replaced
+    fontWeight: '600',
   },
+
   navButtonTextActive: {
-    color: colours.textPrimary,
+    color: colours.textPrimary, // ✅ replaced
   },
+
   navButtonSeparator: {
     borderLeftWidth: 1,
-    borderLeftColor: colours.border,
+    borderLeftColor: colours.border, // ✅ replaced
   },
 });
