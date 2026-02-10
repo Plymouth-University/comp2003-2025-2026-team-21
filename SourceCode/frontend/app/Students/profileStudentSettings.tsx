@@ -15,7 +15,12 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import * as ImagePicker from "expo-image-picker";
-import { getCurrentUser, updateProfileImage, updatePassword } from "../../lib/postsApi";
+import {
+  clearCurrentUserCache,
+  getCurrentUser,
+  updatePassword,
+  updateProfileImage,
+} from "../../lib/postsApi";
 import { colours } from "../../lib/theme/colours";
 
 export default function ProfileSettings() {
@@ -103,6 +108,7 @@ export default function ProfileSettings() {
     SecureStore.deleteItemAsync("userPassword"),
     SecureStore.deleteItemAsync("userRole"),
   ]);
+  clearCurrentUserCache();
 };
 
   const handleLogout = async () => {
@@ -173,7 +179,7 @@ export default function ProfileSettings() {
         </TouchableOpacity>
 
         <Text style={styles.title}>settings</Text>
-        <View style={{ width: 44 }} />
+        <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView
@@ -301,8 +307,9 @@ const styles = StyleSheet.create({
     color: colours.textPrimary,
     fontSize: 34,
     fontWeight: "900",
-    marginRight: 44,
   },
+
+  headerSpacer: { width: 44 },
 
   content: {
     flex: 1,
@@ -393,7 +400,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     paddingVertical: 12,
     borderRadius: 14,
-    backgroundColor: colours.primary,
+    backgroundColor: colours.surfaceElevated,
     borderWidth: 1,
     borderColor: colours.border,
   },
@@ -401,7 +408,6 @@ const styles = StyleSheet.create({
   saveBtnDisabled: { opacity: 0.7 },
 
   saveBtnText: {
-    textAlign: "center",
     color: colours.textPrimary,
     fontSize: 18,
     fontWeight: "900",
@@ -428,14 +434,14 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 18,
     borderRadius: 18,
-    backgroundColor: colours.glass,
-    marginBottom: 14,
+    backgroundColor: "rgba(255,59,48,0.16)",
+    marginBottom: 24,
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: "rgba(255,59,48,0.6)",
   },
 
   deleteText: {
-    color: colours.textPrimary,
+    color: "#ff3b30",
     fontSize: 26,
     fontWeight: "900",
   },

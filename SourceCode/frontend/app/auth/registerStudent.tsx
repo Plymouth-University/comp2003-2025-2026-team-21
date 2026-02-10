@@ -124,6 +124,8 @@ export default function RegisterStudent() {
       await SecureStore.setItemAsync("authToken", token);
       await SecureStore.setItemAsync("userId", user.id);
       await SecureStore.setItemAsync("username", user.username);
+      await SecureStore.setItemAsync("userRole", user.role);
+      await SecureStore.setItemAsync("role", user.role);
 
       Alert.alert("Success", "Account created successfully!");
       router.replace("/Students/EventFeed");

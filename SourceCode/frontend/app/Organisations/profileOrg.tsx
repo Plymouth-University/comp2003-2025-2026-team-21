@@ -16,12 +16,20 @@ import { colours } from "../../lib/theme/colours";
 
 export default function ProfileOrg() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ userId?: string; username?: string }>();
+  const params = useLocalSearchParams<{
+    userId?: string;
+    username?: string;
+    viewerRole?: string;
+  }>();
   const insets = useSafeAreaInsets();
 
   const [refreshing, setRefreshing] = useState(false);
   const [orgName, setOrgName] = useState("Loading...");
   const [userId, setUserId] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<
+    "STUDENT" | "ORGANISATION" | null
+  >(null);
   const [orgPosts, setOrgPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
@@ -36,11 +44,53 @@ export default function ProfileOrg() {
 
   const routeUserId = normalizeParam(params.userId) || null;
   const routeUsername = normalizeParam(params.username) || null;
-  const viewingOther = Boolean(routeUserId);
+  const routeViewerRole = normalizeParam(params.viewerRole) || null;
+  const showSettings =
+    currentUserRole === "ORGANISATION" &&
+    (!routeUserId || (currentUserId && routeUserId === currentUserId));
 
   useEffect(() => {
     loadOrgProfile(routeUserId, routeUsername);
   }, [routeUserId, routeUsername]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadCurrentUserId = async () => {
+      let normalizedRole: "STUDENT" | "ORGANISATION" | null = null;
+      let storedUserId: string | null = null;
+
+      try {
+        const me = await getCurrentUser();
+        normalizedRole = me.role;
+        storedUserId = me.id;
+      } catch {
+        const [fallbackUserId, storedRole] = await Promise.all([
+          SecureStore.getItemAsync("userId"),
+          SecureStore.getItemAsync("userRole"),
+        ]);
+
+        const fallbackRole = storedRole || (await SecureStore.getItemAsync("role"));
+        normalizedRole = fallbackRole
+          ? fallbackRole === "ORGANISATION"
+            ? "ORGANISATION"
+            : "STUDENT"
+          : null;
+        storedUserId = fallbackUserId;
+      }
+
+      if (active) {
+        setCurrentUserId(storedUserId || null);
+        setCurrentUserRole(normalizedRole);
+      }
+    };
+
+    loadCurrentUserId();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const loadOrgProfile = async (
     targetUserId: string | null,
@@ -147,9 +197,7 @@ export default function ProfileOrg() {
           {orgName}
         </Text>
 
-        {viewingOther ? (
-          <View style={styles.headerSpacer} />
-        ) : (
+        {showSettings ? (
           <TouchableOpacity
             style={styles.settingsBtn}
             onPress={() => router.push("/Organisations/profileOrgSettings")}
@@ -157,6 +205,8 @@ export default function ProfileOrg() {
           >
             <Text style={styles.settingsIcon}>⚙</Text>
           </TouchableOpacity>
+        ) : (
+          <View style={styles.headerSpacer} />
         )}
       </View>
 

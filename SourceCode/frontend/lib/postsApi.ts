@@ -8,12 +8,14 @@ export interface Post {
   image: string; // base64
   imageMimeType: string;
   createdAt: string;
-  authorId: string;
+  studentId?: string | null;
+  organisationId?: string | null;
   likes: number;
   User: {
     id: string;
     username: string;
     name: string | null;
+    role: "STUDENT" | "ORGANISATION";
     profileImage: string | null;
     profileImageMimeType: string | null;
   };
@@ -43,6 +45,11 @@ export interface PublicUserProfile {
 
 let currentUserCache: UserProfile | null = null;
 const publicUserCache = new Map<string, PublicUserProfile>();
+
+export function clearCurrentUserCache(): void {
+  currentUserCache = null;
+  publicUserCache.clear();
+}
 
 /**
  * Get auth token from SecureStore

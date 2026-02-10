@@ -26,9 +26,12 @@ model Organisation {
   name                 String
   location             String
   createdAt            DateTime @default(now())
+  profileImage         Bytes?
+  profileImageMimeType String?
   evidenceImage        Bytes?
   evidenceImageMimeType String?
   events               Event[]
+  posts                Posts[]
 }
 
 model Event {
@@ -52,6 +55,8 @@ model Posts {
   imageMimeType String
   createdAt     DateTime @default(now())
   likes         Int      @default(0)
-  authorId      String
-  author        Student  @relation(fields: [authorId], references: [id])
+  studentId     String?
+  organisationId String?
+  student       Student?      @relation(fields: [studentId], references: [id])
+  organisation  Organisation? @relation(fields: [organisationId], references: [id])
 }

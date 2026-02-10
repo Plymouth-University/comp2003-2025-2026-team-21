@@ -12,6 +12,7 @@ import {
 import * as SecureStore from "expo-secure-store";
 import { useRouter } from "expo-router";
 import { API_URL } from "../../lib/api";
+import { clearCurrentUserCache } from "../../lib/postsApi";
 
 export default function LoginOrganisation() {
   const router = useRouter();
@@ -92,6 +93,8 @@ export default function LoginOrganisation() {
     try {
       const { token, user } = await loginRequest(email.trim(), password);
 
+      clearCurrentUserCache();
+
       if (user.role !== "ORGANISATION") {
         Alert.alert("Access denied", "This account is not an organisation.");
         return;
@@ -99,6 +102,8 @@ export default function LoginOrganisation() {
 
       await SecureStore.setItemAsync("authToken", token);
       await SecureStore.setItemAsync("userId", user.id);
+      await SecureStore.setItemAsync("userRole", user.role);
+      await SecureStore.setItemAsync("role", user.role);
 
       if (user.username) {
         await SecureStore.setItemAsync("username", user.username);

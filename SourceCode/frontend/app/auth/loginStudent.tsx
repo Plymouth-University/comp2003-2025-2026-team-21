@@ -13,6 +13,7 @@ import {
 import * as SecureStore from "expo-secure-store";
 import { useRouter } from "expo-router";
 import { API_URL } from "../../lib/api";
+import { clearCurrentUserCache } from "../../lib/postsApi";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -94,6 +95,8 @@ export default function LoginScreen() {
     try {
       const { token, user } = await loginRequest(email.trim(), password);
 
+      clearCurrentUserCache();
+
       console.log("Login successful, user data:", {
         id: user.id,
         username: user.username,
@@ -102,6 +105,8 @@ export default function LoginScreen() {
 
       await SecureStore.setItemAsync("authToken", token);
       await SecureStore.setItemAsync("userId", user.id);
+      await SecureStore.setItemAsync("userRole", user.role);
+      await SecureStore.setItemAsync("role", user.role);
 
       if (user.username) {
         await SecureStore.setItemAsync("username", user.username);

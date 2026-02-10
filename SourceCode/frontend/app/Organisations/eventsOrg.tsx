@@ -42,7 +42,7 @@ type EventItem = {
 };
 
 export default function EventsOrg() {
-  const [selectedDay, setSelectedDay] = useState("Monday");
+  const [selectedDay, setSelectedDay] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [open, setOpen] = useState(false);
@@ -328,7 +328,7 @@ export default function EventsOrg() {
         selectedValue={value}
         onSelectValue={(val) => {
           setValue(val);
-          setSelectedDay(val ?? "Monday");
+          setSelectedDay(val ?? "All");
         }}
         open={open}
         setOpen={setOpen}

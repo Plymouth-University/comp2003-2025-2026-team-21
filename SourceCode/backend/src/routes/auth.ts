@@ -50,17 +50,20 @@ const sanitizeOrganisation = (org: {
   name: string;
   location: string;
   createdAt: Date;
+  profileImage: Buffer | null;
+  profileImageMimeType: string | null;
   evidenceImage: Buffer | null;
   evidenceImageMimeType: string | null;
 }) => ({
   id: org.id,
   email: org.email,
   role: "ORGANISATION" as const,
+  username: org.name,
   name: org.name,
   location: org.location,
   createdAt: org.createdAt,
-  profileImage: null,
-  profileImageMimeType: null,
+  profileImage: org.profileImage ? org.profileImage.toString("base64") : null,
+  profileImageMimeType: org.profileImageMimeType,
   evidenceImage: org.evidenceImage ? org.evidenceImage.toString("base64") : null,
   evidenceImageMimeType: org.evidenceImageMimeType,
 });
@@ -322,8 +325,8 @@ router.put("/profile-image", authMiddleware, async (req: Request, res: Response)
   try {
     const decoded = (req as any).user as JwtPayload | undefined;
 
-    if (!decoded || decoded.role !== "STUDENT") {
-      return res.status(403).json({ error: "Students only" });
+    if (!decoded) {
+      return res.status(401).json({ error: "Unauthorized" });
     }
 
     const { image, imageMimeType } = req.body;
@@ -333,21 +336,45 @@ router.put("/profile-image", authMiddleware, async (req: Request, res: Response)
 
     const imageBuffer = Buffer.from(image, "base64");
 
-    const updatedStudent = await prisma.student.update({
-      where: { id: decoded.id },
-      data: {
-        profileImage: imageBuffer,
-        profileImageMimeType: imageMimeType,
-      },
-    });
+    if (decoded.role === "STUDENT") {
+      const updatedStudent = await prisma.student.update({
+        where: { id: decoded.id },
+        data: {
+          profileImage: imageBuffer,
+          profileImageMimeType: imageMimeType,
+        },
+      });
 
-    return res.json({
-      user: sanitizeStudent({
-        ...updatedStudent,
-        profileImage: updatedStudent.profileImage ?? null,
-        profileImageMimeType: updatedStudent.profileImageMimeType ?? null,
-      }),
-    });
+      return res.json({
+        user: sanitizeStudent({
+          ...updatedStudent,
+          profileImage: updatedStudent.profileImage ?? null,
+          profileImageMimeType: updatedStudent.profileImageMimeType ?? null,
+        }),
+      });
+    }
+
+    if (decoded.role === "ORGANISATION") {
+      const updatedOrg = await prisma.organisation.update({
+        where: { id: decoded.id },
+        data: {
+          profileImage: imageBuffer,
+          profileImageMimeType: imageMimeType,
+        },
+      });
+
+      return res.json({
+        user: sanitizeOrganisation({
+          ...updatedOrg,
+          profileImage: updatedOrg.profileImage ?? null,
+          profileImageMimeType: updatedOrg.profileImageMimeType ?? null,
+          evidenceImage: updatedOrg.evidenceImage ?? null,
+          evidenceImageMimeType: updatedOrg.evidenceImageMimeType ?? null,
+        }),
+      });
+    }
+
+    return res.status(403).json({ error: "Invalid role" });
   } catch (err: any) {
     console.error("Profile image update error:", err);
     return res.status(500).json({ error: "Failed to update profile image" });

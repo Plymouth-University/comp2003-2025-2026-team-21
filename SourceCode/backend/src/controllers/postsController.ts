@@ -1,6 +1,57 @@
 import { Request, Response } from "express";
 import prisma from "../utils/prisma";
 
+const buildPostUser = (post: {
+  student: {
+    id: string;
+    username: string;
+    name: string | null;
+    profileImage: Buffer | null;
+    profileImageMimeType: string | null;
+  } | null;
+  organisation: {
+    id: string;
+    name: string;
+    profileImage: Buffer | null;
+    profileImageMimeType: string | null;
+  } | null;
+}) => {
+  if (post.student) {
+    return {
+      id: post.student.id,
+      username: post.student.username,
+      name: post.student.name,
+      role: "STUDENT" as const,
+      profileImage: post.student.profileImage
+        ? post.student.profileImage.toString("base64")
+        : null,
+      profileImageMimeType: post.student.profileImageMimeType,
+    };
+  }
+
+  if (post.organisation) {
+    return {
+      id: post.organisation.id,
+      username: post.organisation.name,
+      name: post.organisation.name,
+      role: "ORGANISATION" as const,
+      profileImage: post.organisation.profileImage
+        ? post.organisation.profileImage.toString("base64")
+        : null,
+      profileImageMimeType: post.organisation.profileImageMimeType,
+    };
+  }
+
+  return {
+    id: "",
+    username: "Unknown",
+    name: null,
+    role: "STUDENT" as const,
+    profileImage: null,
+    profileImageMimeType: null,
+  };
+};
+
 /**
  * CREATE POST
  * Creates a new post with image and caption
@@ -8,9 +59,11 @@ import prisma from "../utils/prisma";
 export const createPost = async (req: Request, res: Response) => {
   try {
     // @ts-ignore - user is set by authMiddleware
-    const userId = req.user?.id;
+    const userId = req.user?.id as string | undefined;
+    // @ts-ignore - user is set by authMiddleware
+    const userRole = req.user?.role as "STUDENT" | "ORGANISATION" | undefined;
 
-    if (!userId) {
+    if (!userId || !userRole) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
@@ -25,19 +78,27 @@ export const createPost = async (req: Request, res: Response) => {
     // Convert base64 image to Buffer for storage
     const imageBuffer = Buffer.from(image, "base64");
 
-    // Create post in database
     const post = await prisma.posts.create({
       data: {
         caption,
         image: imageBuffer,
         imageMimeType,
-        authorId: userId,
+        studentId: userRole === "STUDENT" ? userId : null,
+        organisationId: userRole === "ORGANISATION" ? userId : null,
       },
       include: {
-        author: {
+        student: {
           select: {
             id: true,
             username: true,
+            name: true,
+            profileImage: true,
+            profileImageMimeType: true,
+          },
+        },
+        organisation: {
+          select: {
+            id: true,
             name: true,
             profileImage: true,
             profileImageMimeType: true,
@@ -50,12 +111,7 @@ export const createPost = async (req: Request, res: Response) => {
     const postWithBase64 = {
       ...post,
       image: post.image.toString("base64"),
-      User: {
-        ...post.author,
-        profileImage: post.author.profileImage
-          ? post.author.profileImage.toString("base64")
-          : null,
-      },
+      User: buildPostUser(post),
     };
 
     return res.status(201).json({ 
@@ -79,10 +135,18 @@ export const getAllPosts = async (req: Request, res: Response) => {
         createdAt: "desc",
       },
       include: {
-        author: {
+        student: {
           select: {
             id: true,
             username: true,
+            name: true,
+            profileImage: true,
+            profileImageMimeType: true,
+          },
+        },
+        organisation: {
+          select: {
+            id: true,
             name: true,
             profileImage: true,
             profileImageMimeType: true,
@@ -95,12 +159,7 @@ export const getAllPosts = async (req: Request, res: Response) => {
     const postsWithBase64 = posts.map((post) => ({
       ...post,
       image: post.image.toString("base64"),
-      User: {
-        ...post.author,
-        profileImage: post.author.profileImage
-          ? post.author.profileImage.toString("base64")
-          : null,
-      },
+      User: buildPostUser(post),
     }));
 
     return res.json({ posts: postsWithBase64 });
@@ -120,16 +179,24 @@ export const getUserPosts = async (req: Request, res: Response) => {
 
     const posts = await prisma.posts.findMany({
       where: {
-        authorId: userId,
+        OR: [{ studentId: userId }, { organisationId: userId }],
       },
       orderBy: {
         createdAt: "desc",
       },
       include: {
-        author: {
+        student: {
           select: {
             id: true,
             username: true,
+            name: true,
+            profileImage: true,
+            profileImageMimeType: true,
+          },
+        },
+        organisation: {
+          select: {
+            id: true,
             name: true,
             profileImage: true,
             profileImageMimeType: true,
@@ -142,12 +209,7 @@ export const getUserPosts = async (req: Request, res: Response) => {
     const postsWithBase64 = posts.map((post) => ({
       ...post,
       image: post.image.toString("base64"),
-      User: {
-        ...post.author,
-        profileImage: post.author.profileImage
-          ? post.author.profileImage.toString("base64")
-          : null,
-      },
+      User: buildPostUser(post),
     }));
 
     return res.json({ posts: postsWithBase64 });
@@ -168,10 +230,18 @@ export const getPostById = async (req: Request, res: Response) => {
     const post = await prisma.posts.findUnique({
       where: { id: postId },
       include: {
-        author: {
+        student: {
           select: {
             id: true,
             username: true,
+            name: true,
+            profileImage: true,
+            profileImageMimeType: true,
+          },
+        },
+        organisation: {
+          select: {
+            id: true,
             name: true,
             profileImage: true,
             profileImageMimeType: true,
@@ -187,12 +257,7 @@ export const getPostById = async (req: Request, res: Response) => {
     const postWithBase64 = {
       ...post,
       image: post.image.toString("base64"),
-      User: {
-        ...post.author,
-        profileImage: post.author.profileImage
-          ? post.author.profileImage.toString("base64")
-          : null,
-      },
+      User: buildPostUser(post),
     };
 
     return res.json({ post: postWithBase64 });
@@ -225,7 +290,7 @@ export const deletePost = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Post not found" });
     }
 
-    if (post.authorId !== userId) {
+    if (post.studentId !== userId && post.organisationId !== userId) {
       return res.status(403).json({ message: "Not authorized to delete this post" });
     }
 

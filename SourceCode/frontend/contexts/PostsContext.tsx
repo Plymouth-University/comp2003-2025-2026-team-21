@@ -6,6 +6,7 @@ export type Post = {
   id: string;
   userId: string;
   username: string;
+  userRole: "STUDENT" | "ORGANISATION";
   userAvatarUri?: string | null;
   caption: string;
   imageUri?: string;
@@ -49,6 +50,7 @@ export function PostsProvider({ children }: { children: ReactNode }) {
         id: dbPost.id,
         userId: dbPost.User.id,
         username: dbPost.User.username,
+        userRole: dbPost.User.role,
         userAvatarUri:
           dbPost.User.profileImage && dbPost.User.profileImageMimeType
             ? `data:${dbPost.User.profileImageMimeType};base64,${dbPost.User.profileImage}`
@@ -76,6 +78,7 @@ export function PostsProvider({ children }: { children: ReactNode }) {
         id: dbPost.id,
         userId: dbPost.User.id,
         username: dbPost.User.username,
+        userRole: dbPost.User.role,
         userAvatarUri:
           dbPost.User.profileImage && dbPost.User.profileImageMimeType
             ? `data:${dbPost.User.profileImageMimeType};base64,${dbPost.User.profileImage}`

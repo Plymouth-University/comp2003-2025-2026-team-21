@@ -15,6 +15,7 @@ import { useRouter } from "expo-router";
 import { usePosts } from "../../contexts/PostsContext";
 import { colours } from "../../lib/theme/colours";
 import * as SecureStore from "expo-secure-store";
+import { getCurrentUser } from "../../lib/postsApi";
 
 interface Props {
   refreshTrigger?: string;
@@ -36,17 +37,37 @@ export default function SocialFeed({
   const [resolvedProfilePath, setResolvedProfilePath] = useState<string>(
     profilePath || "/Students/profileStudent"
   );
+  const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
+  const [viewerRole, setViewerRole] = useState<
+    "STUDENT" | "ORGANISATION" | null
+  >(null);
 
   const lastTriggerRef = useRef<string | undefined>(undefined);
+
+  const loadProfileAvatar = useCallback(async () => {
+    try {
+      const user = await getCurrentUser();
+      if (user?.profileImage && user.profileImageMimeType) {
+        setProfileImageUri(
+          `data:${user.profileImageMimeType};base64,${user.profileImage}`
+        );
+      } else {
+        setProfileImageUri(null);
+      }
+    } catch {
+      setProfileImageUri(null);
+    }
+  }, []);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
       await refreshPosts();
+      await loadProfileAvatar();
     } finally {
       setRefreshing(false);
     }
-  }, [refreshPosts]);
+  }, [refreshPosts, loadProfileAvatar]);
 
   useEffect(() => {
     let alive = true;
@@ -61,10 +82,14 @@ export default function SocialFeed({
         (await SecureStore.getItemAsync("userRole")) ||
         (await SecureStore.getItemAsync("role"));
 
+      const normalizedRole = role === "ORGANISATION" ? "ORGANISATION" : "STUDENT";
+
       const next =
-        role === "ORGANISATION"
+        normalizedRole === "ORGANISATION"
           ? "/Organisations/profileOrg"
           : "/Students/profileStudent";
+
+      if (alive) setViewerRole(normalizedRole);
 
       if (alive) setResolvedProfilePath(next);
     };
@@ -74,7 +99,8 @@ export default function SocialFeed({
     return () => {
       alive = false;
     };
-  }, [profilePath]);
+    loadProfileAvatar();
+  }, [profilePath, loadProfileAvatar]);
 
   useEffect(() => {
     if (!refreshTrigger) return;
@@ -94,6 +120,21 @@ export default function SocialFeed({
   }, [posts, searchQuery]);
 
   const bottomPad = 110 + Math.max(insets.bottom, 0);
+  const buildProfilePath = (post: (typeof posts)[number]) => {
+    if (post.userRole === "ORGANISATION" && viewerRole === "STUDENT") {
+      return "/Students/profileOrg";
+    }
+
+    if (post.userRole === "ORGANISATION") {
+      return "/Organisations/profileOrg";
+    }
+
+    if (post.userRole === "STUDENT" && viewerRole === "ORGANISATION") {
+      return "/Organisations/profileStudent";
+    }
+
+    return "/Students/profileStudent";
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -115,7 +156,14 @@ export default function SocialFeed({
           onPress={() => router.push(resolvedProfilePath as any)}
           activeOpacity={0.85}
         >
-          <View style={styles.profileCircle} />
+          <View style={styles.profileCircle}>
+            {profileImageUri ? (
+              <RNImage
+                source={{ uri: profileImageUri }}
+                style={styles.profileImage}
+              />
+            ) : null}
+          </View>
         </TouchableOpacity>
       </View>
 
@@ -130,10 +178,30 @@ export default function SocialFeed({
         {filteredPosts.map((post) => (
           <View key={post.id} style={styles.postCard}>
             <View style={styles.postHeader}>
-              <View style={styles.userRow}>
-                <View style={styles.userAvatar} />
+              <TouchableOpacity
+                style={styles.userRow}
+                onPress={() =>
+                  router.push({
+                    pathname: buildProfilePath(post) as any,
+                    params: {
+                      userId: post.userId,
+                      username: post.username,
+                      viewerRole: viewerRole ?? undefined,
+                    },
+                  })
+                }
+                activeOpacity={0.8}
+              >
+                <View style={styles.userAvatar}>
+                  {post.userAvatarUri ? (
+                    <RNImage
+                      source={{ uri: post.userAvatarUri }}
+                      style={styles.userAvatarImage}
+                    />
+                  ) : null}
+                </View>
                 <Text style={styles.username}>{post.username}</Text>
-              </View>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.mediaCard}>
@@ -223,7 +291,9 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 999,
     backgroundColor: "rgba(255,255,255,0.35)",
+    overflow: "hidden",
   },
+  profileImage: { width: "100%", height: "100%", resizeMode: "cover" },
 
   scrollArea: { flex: 1, paddingHorizontal: 16 },
 
@@ -236,7 +306,9 @@ const styles = StyleSheet.create({
     height: 34,
     borderRadius: 999,
     backgroundColor: "rgba(255,255,255,0.35)",
+    overflow: "hidden",
   },
+  userAvatarImage: { width: "100%", height: "100%", resizeMode: "cover" },
   username: { color: colours.textPrimary, fontSize: 16, fontWeight: "800" },
 
   mediaCard: {

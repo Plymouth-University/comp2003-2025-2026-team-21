@@ -16,7 +16,11 @@ import { colours } from "../../lib/theme/colours";
 
 export default function ProfileStudent() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ userId?: string; username?: string }>();
+  const params = useLocalSearchParams<{
+    userId?: string;
+    username?: string;
+    viewerRole?: string;
+  }>();
   const insets = useSafeAreaInsets();
 
   const [refreshing, setRefreshing] = useState(false);
@@ -36,7 +40,8 @@ export default function ProfileStudent() {
 
   const routeUserId = normalizeParam(params.userId) || null;
   const routeUsername = normalizeParam(params.username) || null;
-  const viewingOther = Boolean(routeUserId);
+  const routeViewerRole = normalizeParam(params.viewerRole) || null;
+  const viewingOther = Boolean(routeUserId) || routeViewerRole === "ORGANISATION";
 
   useEffect(() => {
     loadUserProfile(routeUserId, routeUsername);
