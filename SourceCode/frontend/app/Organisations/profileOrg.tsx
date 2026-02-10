@@ -193,9 +193,14 @@ export default function ProfileOrg() {
           <Text style={styles.backIcon}>‹</Text>
         </TouchableOpacity>
 
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {orgName}
-        </Text>
+        <View style={styles.headerTitleRow}>
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            {orgName}
+          </Text>
+          <View style={styles.verifiedBadge}>
+            <Text style={styles.verifiedText}>✓</Text>
+          </View>
+        </View>
 
         {showSettings ? (
           <TouchableOpacity
@@ -302,6 +307,29 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     textAlign: "center",
     flex: 1,
+  },
+  headerTitleRow: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  verifiedBadge: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colours.success,
+    borderWidth: 1,
+    borderColor: colours.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  verifiedText: {
+    color: "#0b2a17",
+    fontSize: 12,
+    fontWeight: "900",
+    marginTop: -1,
   },
 
   settingsBtn: {

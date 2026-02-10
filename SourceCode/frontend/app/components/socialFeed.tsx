@@ -95,11 +95,11 @@ export default function SocialFeed({
     };
 
     resolveProfile();
+    loadProfileAvatar();
 
     return () => {
       alive = false;
     };
-    loadProfileAvatar();
   }, [profilePath, loadProfileAvatar]);
 
   useEffect(() => {
@@ -200,7 +200,14 @@ export default function SocialFeed({
                     />
                   ) : null}
                 </View>
-                <Text style={styles.username}>{post.username}</Text>
+                <View style={styles.usernameRow}>
+                  <Text style={styles.username}>{post.username}</Text>
+                  {post.userRole === "ORGANISATION" ? (
+                    <View style={styles.verifiedBadge}>
+                      <Text style={styles.verifiedText}>✓</Text>
+                    </View>
+                  ) : null}
+                </View>
               </TouchableOpacity>
             </View>
 
@@ -310,6 +317,27 @@ const styles = StyleSheet.create({
   },
   userAvatarImage: { width: "100%", height: "100%", resizeMode: "cover" },
   username: { color: colours.textPrimary, fontSize: 16, fontWeight: "800" },
+  usernameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  verifiedBadge: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colours.success,
+    borderWidth: 1,
+    borderColor: colours.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  verifiedText: {
+    color: "#0b2a17",
+    fontSize: 12,
+    fontWeight: "900",
+    marginTop: -1,
+  },
 
   mediaCard: {
     height: 380,
