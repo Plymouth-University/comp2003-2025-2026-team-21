@@ -1,16 +1,49 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ImageBackground } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Asset } from "expo-asset";
+import * as SecureStore from "expo-secure-store";
 
 
 
 export default function Index() {
   const router = useRouter();
+  const [checkingAuth, setCheckingAuth] = useState(true);
   useEffect(() => {
   Asset.fromModule(require("../assets/images/Space.png")).downloadAsync();
 }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    const tryAutoLogin = async () => {
+      try {
+        const token = await SecureStore.getItemAsync("authToken");
+        if (!token) return;
+
+        const role =
+          (await SecureStore.getItemAsync("userRole")) ||
+          (await SecureStore.getItemAsync("role"));
+
+        if (!active) return;
+
+        if (role === "ORGANISATION") {
+          router.replace("/Organisations/eventsOrg");
+        } else {
+          router.replace("/Students/EventFeed");
+        }
+      } finally {
+        if (active) setCheckingAuth(false);
+      }
+    };
+
+    tryAutoLogin();
+
+    return () => {
+      active = false;
+    };
+  }, [router]);
 
   return (
     <ImageBackground
@@ -21,9 +54,14 @@ export default function Index() {
       <View style={styles.overlay} />
 
       <SafeAreaView style={styles.content} edges={["top"]}>
+        {checkingAuth ? null : (
         <Text style={styles.title}>UniVerse</Text>
+        )}
+        {checkingAuth ? null : (
         <Text style={styles.subtitle}>Choose how you want to sign in</Text>
+        )}
 
+        {checkingAuth ? null : (
         <TouchableOpacity
           style={[styles.btn, styles.studentBtn]}
           onPress={() => router.push("../auth/loginStudent")}
@@ -31,7 +69,9 @@ export default function Index() {
         >
           <Text style={styles.btnText}>Login as Student</Text>
         </TouchableOpacity>
+        )}
 
+        {checkingAuth ? null : (
         <TouchableOpacity
           style={[styles.btn, styles.orgBtn]}
           onPress={() => router.push("../auth/loginOrg")}
@@ -39,6 +79,7 @@ export default function Index() {
         >
           <Text style={styles.btnText}>Login as Organisation</Text>
         </TouchableOpacity>
+        )}
       </SafeAreaView>
     </ImageBackground>
   );
