@@ -445,4 +445,41 @@ router.put("/password", authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * DELETE /auth/me
+ */
+router.delete("/me", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const decoded = (req as any).user as JwtPayload | undefined;
+
+    if (!decoded) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    if (decoded.role === "STUDENT") {
+      await prisma.$transaction([
+        prisma.posts.deleteMany({ where: { studentId: decoded.id } }),
+        prisma.student.delete({ where: { id: decoded.id } }),
+      ]);
+
+      return res.json({ message: "Account deleted" });
+    }
+
+    if (decoded.role === "ORGANISATION") {
+      await prisma.$transaction([
+        prisma.posts.deleteMany({ where: { organisationId: decoded.id } }),
+        prisma.event.deleteMany({ where: { organiserId: decoded.id } }),
+        prisma.organisation.delete({ where: { id: decoded.id } }),
+      ]);
+
+      return res.json({ message: "Account deleted" });
+    }
+
+    return res.status(403).json({ error: "Invalid role" });
+  } catch (err: any) {
+    console.error("Account deletion error:", err);
+    return res.status(500).json({ error: "Failed to delete account" });
+  }
+});
+
 export default router;

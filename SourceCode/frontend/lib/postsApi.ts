@@ -380,6 +380,29 @@ export async function updatePassword(
 }
 
 /**
+ * Delete current user's account
+ */
+export async function deleteAccount(): Promise<void> {
+  const token = await getAuthToken();
+
+  if (!token) {
+    throw new Error("Not authenticated");
+  }
+
+  const response = await fetch(`${API_URL}/auth/me`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || error.message || "Failed to delete account");
+  }
+}
+
+/**
  * Delete a post
  */
 export async function deletePost(postId: string): Promise<void> {

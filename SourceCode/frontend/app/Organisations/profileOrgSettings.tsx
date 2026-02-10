@@ -17,6 +17,7 @@ import * as SecureStore from "expo-secure-store";
 import * as ImagePicker from "expo-image-picker";
 import {
   clearCurrentUserCache,
+  deleteAccount,
   getCurrentUser,
   updatePassword,
   updateProfileImage,
@@ -34,6 +35,7 @@ export default function ProfileOrgSettings() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   const bottomPad = 110 + Math.max(insets.bottom, 0);
 
@@ -159,13 +161,27 @@ export default function ProfileOrgSettings() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    try {
+      setDeletingAccount(true);
+      await deleteAccount();
+      await clearSession();
+      router.dismissAll();
+      router.replace("/");
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to delete account.");
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
+
   const confirmDelete = () => {
     Alert.alert(
       "Delete account",
-      "This is a placeholder.",
+      "This will permanently delete your account and data.",
       [
         { text: "Cancel", style: "cancel" },
-        { text: "Delete", style: "destructive", onPress: () => {} },
+        { text: "Delete", style: "destructive", onPress: handleDeleteAccount },
       ]
     );
   };
@@ -262,8 +278,14 @@ export default function ProfileOrgSettings() {
           <Text style={styles.logoutText}>logout</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.deleteBtn} onPress={confirmDelete}>
-          <Text style={styles.deleteText}>delete account</Text>
+        <TouchableOpacity
+          style={styles.deleteBtn}
+          onPress={confirmDelete}
+          disabled={deletingAccount}
+        >
+          <Text style={styles.deleteText}>
+            {deletingAccount ? "Deleting..." : "delete account"}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
