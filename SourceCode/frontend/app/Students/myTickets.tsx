@@ -8,18 +8,14 @@ import {
   RefreshControl,
 } from "react-native";
 import FilterBar from "../components/FilterBar";
-import BottomNav from "../components/BottomNav";
-import { useRouter } from "expo-router";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { colours } from "../../lib/theme/colours";
 
 export default function MyTickets() {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
 
   const [selectedDay, setSelectedDay] = useState("Monday");
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("tickets");
   const [refreshing, setRefreshing] = useState(false);
 
   const [open, setOpen] = useState(false);
@@ -88,19 +84,7 @@ export default function MyTickets() {
         </View>
       </ScrollView>
 
-      <BottomNav
-        activeTab={activeTab}
-        onTabPress={(tab) => {
-          if (tab === activeTab) {
-            handleRefresh();
-          } else {
-            setActiveTab(tab);
-            if (tab === "events") router.replace("/Students/EventFeed");
-            if (tab === "social") router.push("/Students/socialStudent");
-            if (tab === "tickets") router.replace("/Students/myTickets");
-          }
-        }}
-      />
+     
     </SafeAreaView>
   );
 }

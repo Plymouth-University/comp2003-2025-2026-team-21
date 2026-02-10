@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import * as SecureStore from "expo-secure-store";
-import * as postsApi from "../../lib/postsApi";
+import * as postsApi from "../lib/postsApi";
 
 export type Post = {
   id: string;
@@ -28,7 +28,6 @@ export function PostsProvider({ children }: { children: ReactNode }) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Load posts from database on mount
   useEffect(() => {
     loadPosts();
   }, []);
@@ -36,9 +35,8 @@ export function PostsProvider({ children }: { children: ReactNode }) {
   const loadPosts = async () => {
     setLoading(true);
     try {
-      // Check if user is authenticated before trying to load posts
       const token = await SecureStore.getItemAsync("authToken");
-      
+
       if (!token) {
         console.log("No auth token found, skipping post load");
         setLoading(false);
@@ -46,8 +44,7 @@ export function PostsProvider({ children }: { children: ReactNode }) {
       }
 
       const dbPosts = await postsApi.getAllPosts();
-      
-      // Convert database posts to app format
+
       const formattedPosts: Post[] = dbPosts.map((dbPost) => ({
         id: dbPost.id,
         userId: dbPost.User.id,
@@ -59,14 +56,13 @@ export function PostsProvider({ children }: { children: ReactNode }) {
         caption: dbPost.caption,
         imageUri: `data:${dbPost.imageMimeType};base64,${dbPost.image}`,
         likeCount: dbPost.likes ?? 0,
-        liked: false, // TODO: Track likes in database
+        liked: false,
         timestamp: new Date(dbPost.createdAt).getTime(),
       }));
 
       setPosts(formattedPosts);
     } catch (error) {
       console.error("Failed to load posts:", error);
-      // Keep existing posts if load fails
     } finally {
       setLoading(false);
     }
@@ -74,10 +70,8 @@ export function PostsProvider({ children }: { children: ReactNode }) {
 
   const addPost = async (caption: string, imageUri: string) => {
     try {
-      // Save to database
       const dbPost = await postsApi.createPost(caption, imageUri);
 
-      // Add to local state
       const newPost: Post = {
         id: dbPost.id,
         userId: dbPost.User.id,

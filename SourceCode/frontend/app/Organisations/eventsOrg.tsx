@@ -13,6 +13,7 @@ import { colours } from "../../lib/theme/colours";
 import { Spacing } from "../../lib/theme/spacing";
 import { useTabRefresh } from "../hooks/useTabRefresh";
 
+
 type EventItem = {
   id: string;
   day: string;
@@ -22,8 +23,7 @@ type EventItem = {
   price: string;
 };
 
-export default function EventFeed() {
-
+export default function EventsOrg() {
   const [selectedDay, setSelectedDay] = useState("Monday");
   const [searchQuery, setSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
@@ -42,11 +42,11 @@ export default function EventFeed() {
   const events: EventItem[] = [
     {
       id: "1",
-      day: "Monday",
-      title: "Open Mic Night",
-      dateLabel: "Mon 19:00",
-      location: "Campus Café",
-      price: "£0",
+      day: "Tuesday",
+      title: "Party",
+      dateLabel: "Now",
+      location: "My basement",
+      price: "£10000",
     },
     {
       id: "2",
@@ -66,15 +66,19 @@ export default function EventFeed() {
     },
   ];
 
- const handleRefresh = useCallback(async () => {
-     setRefreshing(true);
-     await new Promise((res) => setTimeout(res, 800));
-     setRefreshing(false);
-   }, []);
-   useTabRefresh(handleRefresh);
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await new Promise((res) => setTimeout(res, 800));
+    setRefreshing(false);
+  }, []);
+  useTabRefresh(handleRefresh);
 
-  const visibleEvents = events.filter((e) => e.day === selectedDay);
-
+const visibleEvents = events.filter(
+  (e) =>
+    e.day === selectedDay &&
+    (e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+     e.location.toLowerCase().includes(searchQuery.toLowerCase()))
+);
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <FilterBar
@@ -99,6 +103,7 @@ export default function EventFeed() {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       >
+
         <Text style={styles.sectionTitle}>Events on {selectedDay}</Text>
 
         {visibleEvents.map((ev) => (

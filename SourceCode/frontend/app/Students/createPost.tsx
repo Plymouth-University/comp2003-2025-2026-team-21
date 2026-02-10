@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import { usePosts } from "../contexts/PostsContext";
+import { usePosts } from "../../contexts/PostsContext";
 import { colours } from "../../lib/theme/colours";
 
 export default function CreatePost() {

@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Switch,
   ImageBackground,
   ActivityIndicator,
 } from "react-native";
@@ -13,7 +14,7 @@ import * as SecureStore from "expo-secure-store";
 import { useRouter } from "expo-router";
 import { API_URL } from "../../lib/api";
 
-export default function LoginOrganisation() {
+export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,8 +24,8 @@ export default function LoginOrganisation() {
   useEffect(() => {
     const loadRememberedUser = async () => {
       try {
-        const storedEmail = await SecureStore.getItemAsync("orgEmail");
-        const storedPassword = await SecureStore.getItemAsync("orgPassword");
+        const storedEmail = await SecureStore.getItemAsync("userEmail");
+        const storedPassword = await SecureStore.getItemAsync("userPassword");
 
         if (storedEmail && storedPassword) {
           setEmail(storedEmail);
@@ -48,11 +49,13 @@ export default function LoginOrganisation() {
     });
 
     const raw = await response.text();
+    console.log("Raw response:", raw.substring(0, 500));
 
     let data: any = null;
     if (raw) {
       try {
         data = JSON.parse(raw);
+        console.log("Parsed response user data:", data.user);
       } catch {
         throw new Error(`Non-JSON response (HTTP ${response.status})`);
       }
@@ -70,11 +73,17 @@ export default function LoginOrganisation() {
 
     return data as {
       token: string;
-      user: { id: string; email: string; role: string; name?: string; username?: string };
+      user: {
+        id: string;
+        email: string;
+        role: string;
+        name?: string;
+        username?: string;
+      };
     };
   };
 
-  const orgLogin = async () => {
+  const userLogin = async () => {
     if (!email || !password) {
       Alert.alert("Missing information", "Please fill in both fields.");
       return;
@@ -85,27 +94,35 @@ export default function LoginOrganisation() {
     try {
       const { token, user } = await loginRequest(email.trim(), password);
 
-      if (user.role !== "ORGANISATION") {
-        Alert.alert("Access denied", "This account is not an organisation.");
-        return;
-      }
+      console.log("Login successful, user data:", {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+      });
 
       await SecureStore.setItemAsync("authToken", token);
       await SecureStore.setItemAsync("userId", user.id);
 
       if (user.username) {
         await SecureStore.setItemAsync("username", user.username);
+        console.log("Stored username in SecureStore:", user.username);
+      } else {
+        console.warn("Warning: No username in login response");
       }
 
       if (rememberMe) {
-        await SecureStore.setItemAsync("orgEmail", email.trim());
-        await SecureStore.setItemAsync("orgPassword", password);
+        await SecureStore.setItemAsync("userEmail", email.trim());
+        await SecureStore.setItemAsync("userPassword", password);
       } else {
-        await SecureStore.deleteItemAsync("orgEmail");
-        await SecureStore.deleteItemAsync("orgPassword");
+        await SecureStore.deleteItemAsync("userEmail");
+        await SecureStore.deleteItemAsync("userPassword");
       }
 
-      router.push("/Students/EventFeed");
+      if (user.role === "ORGANISATION") {
+        router.push("/Students/EventFeed");
+      } else {
+        router.push("/Students/EventFeed");
+      }
     } catch (err: any) {
       Alert.alert("Login failed", err?.message || "Please try again.");
     } finally {
@@ -130,12 +147,12 @@ export default function LoginOrganisation() {
       </TouchableOpacity>
 
       <View style={styles.content}>
-        <Text style={styles.title}>Organisation</Text>
+        <Text style={styles.title}>Welcome</Text>
 
         <Text style={styles.label}>Enter email address</Text>
         <TextInput
           style={styles.input}
-          placeholder="org@email.com"
+          placeholder="johnsmith@email.com"
           placeholderTextColor="#b5b5b5"
           keyboardType="email-address"
           autoCapitalize="none"
@@ -154,25 +171,31 @@ export default function LoginOrganisation() {
         />
 
         <View style={styles.rememberRow}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => setRememberMe((v) => !v)}
-            style={[styles.rememberPill, rememberMe && styles.rememberPillOn]}
-          >
-            <Text style={[styles.rememberPillText, rememberMe && styles.rememberPillTextOn]}>
-              Remember me
-            </Text>
-          </TouchableOpacity>
+          <Switch
+            value={rememberMe}
+            onValueChange={setRememberMe}
+            trackColor={{ false: "#ccc", true: "#00c853" }}
+            thumbColor="#fff"
+          />
+          <Text style={styles.rememberText}>Remember me</Text>
         </View>
 
-        <TouchableOpacity style={styles.loginBtn} onPress={orgLogin} disabled={loading}>
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.loginText}>Login</Text>}
+        <TouchableOpacity
+          style={styles.loginBtn}
+          onPress={userLogin}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.loginText}>Login</Text>
+          )}
         </TouchableOpacity>
 
         <Text style={styles.signupText}>
-          Need an account?{" "}
-          <Text style={styles.link} onPress={() => router.push("/Organisations/registerOrg")}>
-            Register
+          Not a user? Create account{" "}
+          <Text style={styles.link} onPress={() => router.push("../auth/registerStudent")}>
+            here
           </Text>
         </Text>
       </View>
@@ -244,24 +267,9 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     marginBottom: 20,
   },
-  rememberPill: {
-    height: 34,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.10)",
-    justifyContent: "center",
-  },
-  rememberPillOn: {
-    backgroundColor: "rgba(0,200,83,0.35)",
-    borderWidth: 1,
-    borderColor: "rgba(0,200,83,0.55)",
-  },
-  rememberPillText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  rememberPillTextOn: {
+  rememberText: {
+    marginLeft: 10,
+    fontSize: 15,
     color: "#fff",
   },
   loginBtn: {

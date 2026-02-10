@@ -19,6 +19,17 @@ model User {
   profileImageMimeType String?
   events               Event[]
   Posts                Posts[]
+  organisation         Organisation?
+}
+
+model Organisation {
+  id                   String   @id @default(uuid())
+  name                 String
+  createdAt            DateTime @default(now())
+  evidenceImage        Bytes?
+  evidenceImageMimeType String?
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id])
 }
 
 model Event {
@@ -27,6 +38,7 @@ model Event {
   description        String
   date               DateTime
   location           String
+  price              String
   createdAt          DateTime @default(now())
   organiserId        String
   eventImage         Bytes?

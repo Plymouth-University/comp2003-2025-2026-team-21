@@ -1,10 +1,16 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ImageBackground } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { Asset } from "expo-asset";
+
+
 
 export default function Index() {
   const router = useRouter();
+  useEffect(() => {
+  Asset.fromModule(require("../assets/images/Space.png")).downloadAsync();
+}, []);
 
   return (
     <ImageBackground
@@ -20,7 +26,7 @@ export default function Index() {
 
         <TouchableOpacity
           style={[styles.btn, styles.studentBtn]}
-          onPress={() => router.push("/Students/loginStudent")}
+          onPress={() => router.push("../auth/loginStudent")}
           activeOpacity={0.85}
         >
           <Text style={styles.btnText}>Login as Student</Text>
@@ -28,7 +34,7 @@ export default function Index() {
 
         <TouchableOpacity
           style={[styles.btn, styles.orgBtn]}
-          onPress={() => router.push("/Organisations/loginOrg")}
+          onPress={() => router.push("../auth/loginOrg")}
           activeOpacity={0.85}
         >
           <Text style={styles.btnText}>Login as Organisation</Text>

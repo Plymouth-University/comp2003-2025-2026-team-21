@@ -14,21 +14,21 @@ import * as SecureStore from "expo-secure-store";
 import { getUserPosts, getCurrentUser, getUserProfile, Post } from "../../lib/postsApi";
 import { colours } from "../../lib/theme/colours";
 
-export default function ProfileStudent() {
+export default function ProfileOrg() {
   const router = useRouter();
   const params = useLocalSearchParams<{ userId?: string; username?: string }>();
   const insets = useSafeAreaInsets();
 
   const [refreshing, setRefreshing] = useState(false);
-  const [username, setUsername] = useState("Loading...");
+  const [orgName, setOrgName] = useState("Loading...");
   const [userId, setUserId] = useState<string | null>(null);
-  const [userPosts, setUserPosts] = useState<Post[]>([]);
+  const [orgPosts, setOrgPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
 
   const totalLikes = useMemo(
-    () => userPosts.reduce((sum, post) => sum + (post.likes ?? 0), 0),
-    [userPosts]
+    () => orgPosts.reduce((sum, post) => sum + (post.likes ?? 0), 0),
+    [orgPosts]
   );
 
   const normalizeParam = (value?: string | string[]) =>
@@ -39,10 +39,10 @@ export default function ProfileStudent() {
   const viewingOther = Boolean(routeUserId);
 
   useEffect(() => {
-    loadUserProfile(routeUserId, routeUsername);
+    loadOrgProfile(routeUserId, routeUsername);
   }, [routeUserId, routeUsername]);
 
-  const loadUserProfile = async (
+  const loadOrgProfile = async (
     targetUserId: string | null,
     targetUsername: string | null
   ) => {
@@ -50,35 +50,53 @@ export default function ProfileStudent() {
       setLoading(true);
       setProfileImageUri(null);
 
-      let finalUsername: string | null = targetUsername;
+      let finalOrgName: string | null = null;
       let finalUserId: string | null = targetUserId;
 
       if (finalUserId) {
         try {
           const user = await getUserProfile(finalUserId);
-          if (user?.username) finalUsername = user.username;
+
           if (user?.profileImage && user.profileImageMimeType) {
             setProfileImageUri(
               `data:${user.profileImageMimeType};base64,${user.profileImage}`
             );
           }
-        } catch {}
+
+          if (user?.name) finalOrgName = user.name;
+          else if (user?.username) finalOrgName = user.username;
+          else if (targetUsername) finalOrgName = targetUsername;
+        } catch {
+          if (targetUsername) finalOrgName = targetUsername;
+        }
       } else {
         try {
           const user = await getCurrentUser();
-          if (user?.username) finalUsername = user.username;
+
           if (user?.id) finalUserId = user.id;
+
           if (user?.profileImage && user.profileImageMimeType) {
             setProfileImageUri(
               `data:${user.profileImageMimeType};base64,${user.profileImage}`
             );
           }
+
+          if (user?.name) finalOrgName = user.name;
+          else if (user?.username) finalOrgName = user.username;
         } catch {}
       }
 
-      if (!finalUsername) {
+      if (!finalOrgName) {
+        const storedOrgName =
+          (await SecureStore.getItemAsync("organisationName")) ||
+          (await SecureStore.getItemAsync("orgName")) ||
+          (await SecureStore.getItemAsync("name"));
+        if (storedOrgName) finalOrgName = storedOrgName;
+      }
+
+      if (!finalOrgName) {
         const storedUsername = await SecureStore.getItemAsync("username");
-        if (storedUsername) finalUsername = storedUsername;
+        if (storedUsername) finalOrgName = storedUsername;
       }
 
       if (!finalUserId) {
@@ -89,16 +107,18 @@ export default function ProfileStudent() {
       if (finalUserId) {
         setUserId(finalUserId);
         const posts = await getUserPosts(finalUserId);
-        setUserPosts(posts);
+        setOrgPosts(posts);
 
-        if (!finalUsername && posts.length > 0 && posts[0]?.User?.username) {
-          finalUsername = posts[0].User.username;
+        if (!finalOrgName && posts.length > 0) {
+          const fromPostName = posts[0]?.User?.name;
+          const fromPostUsername = posts[0]?.User?.username;
+          finalOrgName = fromPostName || fromPostUsername || null;
         }
       }
 
-      setUsername(finalUsername || "Username not available");
+      setOrgName(finalOrgName || "Organisation");
     } catch {
-      setUsername("Error loading profile");
+      setOrgName("Error loading profile");
     } finally {
       setLoading(false);
     }
@@ -106,7 +126,7 @@ export default function ProfileStudent() {
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadUserProfile(routeUserId, routeUsername);
+    await loadOrgProfile(routeUserId, routeUsername);
     setRefreshing(false);
   }, [routeUserId, routeUsername]);
 
@@ -124,7 +144,7 @@ export default function ProfileStudent() {
         </TouchableOpacity>
 
         <Text style={styles.headerTitle} numberOfLines={1}>
-          {username}
+          {orgName}
         </Text>
 
         {viewingOther ? (
@@ -132,7 +152,7 @@ export default function ProfileStudent() {
         ) : (
           <TouchableOpacity
             style={styles.settingsBtn}
-            onPress={() => router.push("/Students/profileStudentSettings")}
+            onPress={() => router.push("/Organisations/profileOrgSettings")}
             activeOpacity={0.85}
           >
             <Text style={styles.settingsIcon}>⚙</Text>
@@ -157,15 +177,15 @@ export default function ProfileStudent() {
 
         <Text style={styles.likesText}>Likes: {totalLikes}</Text>
 
-        <Text style={styles.postsLabel}>Posts: {userPosts.length}</Text>
+        <Text style={styles.postsLabel}>Posts: {orgPosts.length}</Text>
 
         {loading ? (
           <Text style={styles.loadingText}>Loading posts...</Text>
-        ) : userPosts.length === 0 ? (
+        ) : orgPosts.length === 0 ? (
           <Text style={styles.emptyText}>No posts yet</Text>
         ) : (
           <View style={styles.grid}>
-            {userPosts.map((post) => (
+            {orgPosts.map((post) => (
               <TouchableOpacity
                 key={post.id}
                 style={styles.tile}
@@ -189,8 +209,6 @@ export default function ProfileStudent() {
           </View>
         )}
       </ScrollView>
-
-     
     </SafeAreaView>
   );
 }

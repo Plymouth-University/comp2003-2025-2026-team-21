@@ -42,31 +42,61 @@ interface JwtPayload {
  * POST /auth/register
  *
  * - Validates required fields
- * - Checks if email exists
+ * - Checks if email/username exists
  * - Hashes password
  * - Creates user
+ * - Creates organisation record if role is ORGANISATION
  * - Signs token (auto-login)
  * - Returns token + safe user fields
  */
 router.post("/register", async (req: Request, res: Response) => {
   const { email, username, password, role, name } = req.body;
+  const isOrganisation = role === "ORGANISATION";
 
   // Basic validation - stop early if required fields missing
-  if (!email || !username || !password || !name) {
-    return res.status(400).json({ error: "Missing email, username, password, or name" });
+  if (!email || !password || !name || (!username && !isOrganisation)) {
+    return res.status(400).json({ error: "Missing email, password, name, or username" });
   }
 
   try {
-    // Check if email or username is already taken
-    const existingUser = await prisma.user.findFirst({
-      where: {
-        OR: [{ email }, { username }],
-      },
-    });
+    // Check if email is already taken
+    const existingEmail = await prisma.user.findUnique({ where: { email } });
+    if (existingEmail) {
+      return res.status(400).json({ error: "Email already exists" });
+    }
 
-    if (existingUser) {
-      const field = existingUser.email === email ? "Email" : "Username";
-      return res.status(400).json({ error: `${field} already exists` });
+    const normalizeUsername = (value: string) =>
+      value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "")
+        .slice(0, 20);
+
+    let finalUsername = username?.trim();
+
+    if (!finalUsername && isOrganisation) {
+      const emailBase = email.split("@")[0] || "org";
+      const nameBase = normalizeUsername(name) || normalizeUsername(emailBase) || "org";
+      let candidate = nameBase;
+      let counter = 0;
+
+      while (await prisma.user.findUnique({ where: { username: candidate } })) {
+        counter += 1;
+        candidate = `${nameBase}_${counter}`;
+      }
+
+      finalUsername = candidate;
+    }
+
+    if (!finalUsername) {
+      return res.status(400).json({ error: "Username is required" });
+    }
+
+    const existingUsername = await prisma.user.findUnique({
+      where: { username: finalUsername },
+    });
+    if (existingUsername) {
+      return res.status(400).json({ error: "Username already exists" });
     }
 
     // Hash password for secure storage
@@ -76,12 +106,21 @@ router.post("/register", async (req: Request, res: Response) => {
     const user = await prisma.user.create({
       data: {
         email,
-        username,
+        username: finalUsername,
         password: hashedPassword,
         role: role || "STUDENT", // default role
         name,
       },
     });
+
+    if (isOrganisation) {
+      await prisma.organisation.create({
+        data: {
+          name,
+          userId: user.id,
+        },
+      });
+    }
 
     // If JWT secret missing, you can't sign tokens — treat as server misconfig
     if (!JWT_SECRET) {

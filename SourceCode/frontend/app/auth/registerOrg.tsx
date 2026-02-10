@@ -125,7 +125,7 @@ export default function RegisterOrg() {
       await SecureStore.setItemAsync("orgEvidenceUri", evidenceUri);
 
       Alert.alert("Success", "Organisation account created successfully!");
-      router.replace("/Organisations/loginOrg");
+      router.replace("../Organisations/eventsOrg");
     } catch (err: any) {
       Alert.alert("Registration failed", err?.message || "Please try again.");
     } finally {

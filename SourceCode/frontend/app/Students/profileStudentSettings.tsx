@@ -15,7 +15,6 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import * as ImagePicker from "expo-image-picker";
-import BottomNav from "../components/BottomNav";
 import { getCurrentUser, updateProfileImage, updatePassword } from "../../lib/postsApi";
 import { colours } from "../../lib/theme/colours";
 
@@ -23,7 +22,6 @@ export default function ProfileSettings() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const [activeTab, setActiveTab] = useState("social");
   const [notifications, setNotifications] = useState(true);
   const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -96,31 +94,35 @@ export default function ProfileSettings() {
     }
   };
 
+  const clearSession = async () => {
+  await Promise.all([
+    SecureStore.deleteItemAsync("authToken"),
+    SecureStore.deleteItemAsync("userId"),
+    SecureStore.deleteItemAsync("username"),
+    SecureStore.deleteItemAsync("userEmail"),
+    SecureStore.deleteItemAsync("userPassword"),
+    SecureStore.deleteItemAsync("userRole"),
+  ]);
+};
+
   const handleLogout = async () => {
-    Alert.alert(
-      "Logout",
-      "Are you sure you want to logout?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Logout",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await SecureStore.deleteItemAsync("authToken");
-              await SecureStore.deleteItemAsync("userId");
-              await SecureStore.deleteItemAsync("username");
-              await SecureStore.deleteItemAsync("userEmail");
-              await SecureStore.deleteItemAsync("userPassword");
-              router.replace("/");
-            } catch {
-              Alert.alert("Error", "Failed to logout.");
-            }
-          }
+  Alert.alert(
+    "Logout",
+    "Are you sure you want to logout?",
+    [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: async () => {
+          await clearSession();
+          router.dismissAll();
+          router.replace("/");
         },
-      ]
-    );
-  };
+      },
+    ]
+  );
+};
 
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
@@ -258,15 +260,7 @@ export default function ProfileSettings() {
         </TouchableOpacity>
       </ScrollView>
 
-      <BottomNav
-        activeTab={activeTab}
-        onTabPress={(tab) => {
-          setActiveTab(tab);
-          if (tab === "events") router.replace("/Students/EventFeed");
-          if (tab === "tickets") router.push("/Students/myTickets");
-          if (tab === "social") router.replace("/Students/socialStudent");
-        }}
-      />
+    
     </SafeAreaView>
   );
 }

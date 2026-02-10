@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  Switch,
   ImageBackground,
   ActivityIndicator,
 } from "react-native";
@@ -14,7 +13,7 @@ import * as SecureStore from "expo-secure-store";
 import { useRouter } from "expo-router";
 import { API_URL } from "../../lib/api";
 
-export default function LoginScreen() {
+export default function LoginOrganisation() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,8 +23,8 @@ export default function LoginScreen() {
   useEffect(() => {
     const loadRememberedUser = async () => {
       try {
-        const storedEmail = await SecureStore.getItemAsync("userEmail");
-        const storedPassword = await SecureStore.getItemAsync("userPassword");
+        const storedEmail = await SecureStore.getItemAsync("orgEmail");
+        const storedPassword = await SecureStore.getItemAsync("orgPassword");
 
         if (storedEmail && storedPassword) {
           setEmail(storedEmail);
@@ -49,13 +48,11 @@ export default function LoginScreen() {
     });
 
     const raw = await response.text();
-    console.log("Raw response:", raw.substring(0, 500));
 
     let data: any = null;
     if (raw) {
       try {
         data = JSON.parse(raw);
-        console.log("Parsed response user data:", data.user);
       } catch {
         throw new Error(`Non-JSON response (HTTP ${response.status})`);
       }
@@ -73,17 +70,11 @@ export default function LoginScreen() {
 
     return data as {
       token: string;
-      user: {
-        id: string;
-        email: string;
-        role: string;
-        name?: string;
-        username?: string;
-      };
+      user: { id: string; email: string; role: string; name?: string; username?: string };
     };
   };
 
-  const userLogin = async () => {
+  const orgLogin = async () => {
     if (!email || !password) {
       Alert.alert("Missing information", "Please fill in both fields.");
       return;
@@ -94,35 +85,27 @@ export default function LoginScreen() {
     try {
       const { token, user } = await loginRequest(email.trim(), password);
 
-      console.log("Login successful, user data:", {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-      });
+      if (user.role !== "ORGANISATION") {
+        Alert.alert("Access denied", "This account is not an organisation.");
+        return;
+      }
 
       await SecureStore.setItemAsync("authToken", token);
       await SecureStore.setItemAsync("userId", user.id);
 
       if (user.username) {
         await SecureStore.setItemAsync("username", user.username);
-        console.log("Stored username in SecureStore:", user.username);
-      } else {
-        console.warn("Warning: No username in login response");
       }
 
       if (rememberMe) {
-        await SecureStore.setItemAsync("userEmail", email.trim());
-        await SecureStore.setItemAsync("userPassword", password);
+        await SecureStore.setItemAsync("orgEmail", email.trim());
+        await SecureStore.setItemAsync("orgPassword", password);
       } else {
-        await SecureStore.deleteItemAsync("userEmail");
-        await SecureStore.deleteItemAsync("userPassword");
+        await SecureStore.deleteItemAsync("orgEmail");
+        await SecureStore.deleteItemAsync("orgPassword");
       }
 
-      if (user.role === "ORGANISATION") {
-        router.push("/Students/EventFeed");
-      } else {
-        router.push("/Students/EventFeed");
-      }
+      router.push("/Organisations/eventsOrg");
     } catch (err: any) {
       Alert.alert("Login failed", err?.message || "Please try again.");
     } finally {
@@ -147,12 +130,12 @@ export default function LoginScreen() {
       </TouchableOpacity>
 
       <View style={styles.content}>
-        <Text style={styles.title}>Welcome</Text>
+        <Text style={styles.title}>Organisation</Text>
 
         <Text style={styles.label}>Enter email address</Text>
         <TextInput
           style={styles.input}
-          placeholder="johnsmith@email.com"
+          placeholder="org@email.com"
           placeholderTextColor="#b5b5b5"
           keyboardType="email-address"
           autoCapitalize="none"
@@ -171,31 +154,25 @@ export default function LoginScreen() {
         />
 
         <View style={styles.rememberRow}>
-          <Switch
-            value={rememberMe}
-            onValueChange={setRememberMe}
-            trackColor={{ false: "#ccc", true: "#00c853" }}
-            thumbColor="#fff"
-          />
-          <Text style={styles.rememberText}>Remember me</Text>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => setRememberMe((v) => !v)}
+            style={[styles.rememberPill, rememberMe && styles.rememberPillOn]}
+          >
+            <Text style={[styles.rememberPillText, rememberMe && styles.rememberPillTextOn]}>
+              Remember me
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          style={styles.loginBtn}
-          onPress={userLogin}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.loginText}>Login</Text>
-          )}
+        <TouchableOpacity style={styles.loginBtn} onPress={orgLogin} disabled={loading}>
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.loginText}>Login</Text>}
         </TouchableOpacity>
 
         <Text style={styles.signupText}>
-          Not a user? Create account{" "}
-          <Text style={styles.link} onPress={() => router.push("/Students/registerStudent")}>
-            here
+          Need an account?{" "}
+          <Text style={styles.link} onPress={() => router.push("../auth/registerOrg")}>
+            Register
           </Text>
         </Text>
       </View>
@@ -267,9 +244,24 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     marginBottom: 20,
   },
-  rememberText: {
-    marginLeft: 10,
-    fontSize: 15,
+  rememberPill: {
+    height: 34,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.10)",
+    justifyContent: "center",
+  },
+  rememberPillOn: {
+    backgroundColor: "rgba(0,200,83,0.35)",
+    borderWidth: 1,
+    borderColor: "rgba(0,200,83,0.55)",
+  },
+  rememberPillText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  rememberPillTextOn: {
     color: "#fff",
   },
   loginBtn: {
