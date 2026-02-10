@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Switch,
   ImageBackground,
   ActivityIndicator,
 } from "react-native";
@@ -170,15 +171,13 @@ export default function LoginOrganisation() {
         />
 
         <View style={styles.rememberRow}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => setRememberMe((v) => !v)}
-            style={[styles.rememberPill, rememberMe && styles.rememberPillOn]}
-          >
-            <Text style={[styles.rememberPillText, rememberMe && styles.rememberPillTextOn]}>
-              Remember me
-            </Text>
-          </TouchableOpacity>
+          <Switch
+            value={rememberMe}
+            onValueChange={setRememberMe}
+            trackColor={{ false: "#ccc", true: "#00c853" }}
+            thumbColor="#fff"
+          />
+          <Text style={styles.rememberText}>Remember me</Text>
         </View>
 
         <TouchableOpacity style={styles.loginBtn} onPress={orgLogin} disabled={loading}>
@@ -260,25 +259,11 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     marginBottom: 20,
   },
-  rememberPill: {
-    height: 34,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.10)",
-    justifyContent: "center",
-  },
-  rememberPillOn: {
-    backgroundColor: "rgba(0,200,83,0.35)",
-    borderWidth: 1,
-    borderColor: "rgba(0,200,83,0.55)",
-  },
-  rememberPillText: {
+  rememberText: {
+    marginLeft: 10,
     color: "#fff",
     fontSize: 14,
     fontWeight: "600",
-  },
-  rememberPillTextOn: {
-    color: "#fff",
   },
   loginBtn: {
     backgroundColor: "#00c853",

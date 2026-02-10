@@ -159,7 +159,7 @@ export default function AddEventOrg() {
       });
 
       Alert.alert("Success", "Event created successfully!", [
-        { text: "OK", onPress: () => router.back() },
+        { text: "OK", onPress: () => router.replace("/Organisations/createEvent") },
       ]);
 
       setTitle("");
