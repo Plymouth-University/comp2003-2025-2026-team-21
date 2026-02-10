@@ -25,6 +25,8 @@ type EventItem = {
   day: string;
   title: string;
   dateLabel: string;
+  dateLabelDate: string;
+  dateLabelTime: string;
   location: string;
   price: string;
   image: string | null;
@@ -90,22 +92,32 @@ export default function EventFeed() {
         const eventDate = new Date(event.date);
         const isValidDate = !Number.isNaN(eventDate.getTime());
         const dayName = isValidDate ? dayNames[eventDate.getDay()] : "Monday";
-        const dateLabel = isValidDate
-          ? `${eventDate.toLocaleDateString("en-GB", {
+        const dateLabelDate = isValidDate
+          ? eventDate.toLocaleDateString("en-GB", {
               day: "2-digit",
               month: "2-digit",
-            })} ${eventDate.toLocaleTimeString("en-US", {
-              hour: "numeric",
-              minute: "2-digit",
-              hour12: true,
-            })}`
+            })
           : "TBD";
+        const dateLabelTime = isValidDate
+          ? eventDate
+              .toLocaleTimeString("en-US", {
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
+              })
+              .replace(" ", "")
+          : "";
+        const dateLabel = dateLabelTime
+          ? `${dateLabelDate} ${dateLabelTime}`
+          : dateLabelDate;
 
         return {
           id: event.id,
           day: dayName,
           title: event.title,
           dateLabel,
+          dateLabelDate,
+          dateLabelTime,
           location: event.location,
           price: event.price,
           image: event.eventImage,
@@ -201,14 +213,16 @@ export default function EventFeed() {
                   {ev.title}
                 </Text>
                 <Text style={styles.eventMeta} numberOfLines={1}>
-                  {ev.dateLabel}
+                  {ev.dateLabelDate}
                 </Text>
+                {ev.dateLabelTime ? (
+                  <Text style={styles.eventMeta} numberOfLines={1}>
+                    {ev.dateLabelTime}
+                  </Text>
+                ) : null}
               </View>
 
               <View style={styles.eventRight}>
-                <Text style={styles.eventMetaRight} numberOfLines={1}>
-                  {ev.location}
-                </Text>
                 <Text style={styles.eventMetaRight} numberOfLines={1}>
                   {ev.price}
                 </Text>
@@ -340,7 +354,7 @@ const styles = StyleSheet.create({
 
   eventRight: {
     alignItems: "flex-end",
-    minWidth: 110,
+    minWidth: 90,
   },
 
   eventTitle: {
@@ -352,7 +366,7 @@ const styles = StyleSheet.create({
 
   eventMeta: {
     color: colours.textPrimary,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "900",
   },
 

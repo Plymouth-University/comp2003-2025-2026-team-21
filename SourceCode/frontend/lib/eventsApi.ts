@@ -115,3 +115,88 @@ export async function getEvents(): Promise<EventRecord[]> {
   const data = await response.json();
   return data.events as EventRecord[];
 }
+
+export async function getMyEvents(): Promise<EventRecord[]> {
+  const token = await getAuthToken();
+
+  if (!token) {
+    throw new Error("Not authenticated");
+  }
+
+  const response = await fetch(`${API_URL}/events/mine`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Failed to fetch organiser events");
+  }
+
+  const data = await response.json();
+  return data.events as EventRecord[];
+}
+
+export async function updateEvent(params: {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  location: string;
+  price: string;
+  imageUri?: string | null;
+}): Promise<EventRecord> {
+  const token = await getAuthToken();
+
+  if (!token) {
+    throw new Error("Not authenticated");
+  }
+
+  const payload: Record<string, string | null> = {
+    title: params.title,
+    description: params.description,
+    date: params.date,
+    location: params.location,
+    price: params.price,
+  };
+
+  if (params.imageUri) {
+    payload.eventImage = await imageUriToBase64(params.imageUri);
+    payload.eventImageMimeType = getMimeType(params.imageUri);
+  }
+
+  const response = await fetch(`${API_URL}/events/${params.id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Failed to update event");
+  }
+
+  const data = await response.json();
+  return data.event as EventRecord;
+}
+
+export async function deleteEvent(id: string): Promise<void> {
+  const token = await getAuthToken();
+
+  if (!token) {
+    throw new Error("Not authenticated");
+  }
+
+  const response = await fetch(`${API_URL}/events/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Failed to delete event");
+  }
+}
