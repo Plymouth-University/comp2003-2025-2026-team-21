@@ -24,15 +24,18 @@ export interface UserProfile {
   email: string;
   username?: string;
   name: string | null;
-  role: string;
+  role: "STUDENT" | "ORGANISATION";
+  location?: string | null;
   profileImage: string | null;
   profileImageMimeType: string | null;
 }
 
 export interface PublicUserProfile {
   id: string;
-  username: string;
+  username?: string;
   name: string | null;
+  role?: "STUDENT" | "ORGANISATION";
+  location?: string | null;
   profileImage: string | null;
   profileImageMimeType: string | null;
   createdAt: string;

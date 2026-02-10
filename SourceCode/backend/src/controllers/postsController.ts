@@ -34,7 +34,7 @@ export const createPost = async (req: Request, res: Response) => {
         authorId: userId,
       },
       include: {
-        User: {
+        author: {
           select: {
             id: true,
             username: true,
@@ -51,9 +51,9 @@ export const createPost = async (req: Request, res: Response) => {
       ...post,
       image: post.image.toString("base64"),
       User: {
-        ...post.User,
-        profileImage: post.User.profileImage
-          ? post.User.profileImage.toString("base64")
+        ...post.author,
+        profileImage: post.author.profileImage
+          ? post.author.profileImage.toString("base64")
           : null,
       },
     };
@@ -79,7 +79,7 @@ export const getAllPosts = async (req: Request, res: Response) => {
         createdAt: "desc",
       },
       include: {
-        User: {
+        author: {
           select: {
             id: true,
             username: true,
@@ -96,9 +96,9 @@ export const getAllPosts = async (req: Request, res: Response) => {
       ...post,
       image: post.image.toString("base64"),
       User: {
-        ...post.User,
-        profileImage: post.User.profileImage
-          ? post.User.profileImage.toString("base64")
+        ...post.author,
+        profileImage: post.author.profileImage
+          ? post.author.profileImage.toString("base64")
           : null,
       },
     }));
@@ -126,7 +126,7 @@ export const getUserPosts = async (req: Request, res: Response) => {
         createdAt: "desc",
       },
       include: {
-        User: {
+        author: {
           select: {
             id: true,
             username: true,
@@ -143,9 +143,9 @@ export const getUserPosts = async (req: Request, res: Response) => {
       ...post,
       image: post.image.toString("base64"),
       User: {
-        ...post.User,
-        profileImage: post.User.profileImage
-          ? post.User.profileImage.toString("base64")
+        ...post.author,
+        profileImage: post.author.profileImage
+          ? post.author.profileImage.toString("base64")
           : null,
       },
     }));
@@ -168,7 +168,7 @@ export const getPostById = async (req: Request, res: Response) => {
     const post = await prisma.posts.findUnique({
       where: { id: postId },
       include: {
-        User: {
+        author: {
           select: {
             id: true,
             username: true,
@@ -188,9 +188,9 @@ export const getPostById = async (req: Request, res: Response) => {
       ...post,
       image: post.image.toString("base64"),
       User: {
-        ...post.User,
-        profileImage: post.User.profileImage
-          ? post.User.profileImage.toString("base64")
+        ...post.author,
+        profileImage: post.author.profileImage
+          ? post.author.profileImage.toString("base64")
           : null,
       },
     };

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authMiddleware } from "../middleware/authMiddleware";
+import { requireRole } from "../middleware/roleMiddleware";
 import { 
   createPost, 
   getAllPosts, 
@@ -15,7 +16,7 @@ const router = Router();
 router.use(authMiddleware);
 
 // Create a new post
-router.post("/", createPost);
+router.post("/", requireRole("STUDENT"), createPost);
 
 // Get all posts
 router.get("/", getAllPosts);
@@ -27,7 +28,7 @@ router.get("/user/:userId", getUserPosts);
 router.get("/:postId", getPostById);
 
 // Delete a post
-router.delete("/:postId", deletePost);
+router.delete("/:postId", requireRole("STUDENT"), deletePost);
 
 // Update like count for a post
 router.post("/:postId/like", updatePostLikes);

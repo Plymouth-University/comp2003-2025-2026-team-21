@@ -38,7 +38,7 @@ export default function LoginOrganisation() {
   }, []);
 
   const loginRequest = async (email: string, password: string) => {
-    const url = `${API_URL}/auth/login`;
+    const url = `${API_URL}/auth/login-org`;
     console.log("Calling backend:", url);
 
     const response = await fetch(url, {
@@ -70,7 +70,14 @@ export default function LoginOrganisation() {
 
     return data as {
       token: string;
-      user: { id: string; email: string; role: string; name?: string; username?: string };
+      user: {
+        id: string;
+        email: string;
+        role: string;
+        name?: string;
+        username?: string;
+        location?: string | null;
+      };
     };
   };
 
@@ -95,6 +102,10 @@ export default function LoginOrganisation() {
 
       if (user.username) {
         await SecureStore.setItemAsync("username", user.username);
+      }
+
+      if (user.location) {
+        await SecureStore.setItemAsync("orgLocation", user.location);
       }
 
       if (rememberMe) {

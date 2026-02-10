@@ -63,8 +63,8 @@ export const createEvent = async (req: Request, res: Response) => {
         organiser: {
           select: {
             id: true,
-            username: true,
             name: true,
+            location: true,
           },
         },
       },
@@ -72,6 +72,11 @@ export const createEvent = async (req: Request, res: Response) => {
 
     const eventWithBase64 = {
       ...event,
+      organiser: {
+        id: event.organiser.id,
+        name: event.organiser.name,
+        location: event.organiser.location,
+      },
       eventImage: event.eventImage ? event.eventImage.toString("base64") : null,
     };
 
@@ -90,8 +95,8 @@ export const getAllEvents = async (req: Request, res: Response) => {
         organiser: {
           select: {
             id: true,
-            username: true,
             name: true,
+            location: true,
           },
         },
       },
@@ -99,6 +104,11 @@ export const getAllEvents = async (req: Request, res: Response) => {
 
     const eventsWithBase64 = events.map((event) => ({
       ...event,
+      organiser: {
+        id: event.organiser.id,
+        name: event.organiser.name,
+        location: event.organiser.location,
+      },
       eventImage: event.eventImage ? event.eventImage.toString("base64") : null,
     }));
 

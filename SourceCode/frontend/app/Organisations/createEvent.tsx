@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,8 +14,10 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
+import * as SecureStore from "expo-secure-store";
 import { colours } from "../../lib/theme/colours";
 import { createEvent } from "../../lib/eventsApi";
+import { getCurrentUser } from "../../lib/postsApi";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
 export default function AddEventOrg() {
@@ -29,6 +31,7 @@ export default function AddEventOrg() {
   const [eventDate, setEventDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [location, setLocation] = useState("");
+  const [locationTouched, setLocationTouched] = useState(false);
   const [price, setPrice] = useState("£");
   const [imageUri, setImageUri] = useState<string | null>(null);
 
@@ -80,6 +83,40 @@ export default function AddEventOrg() {
     });
   }, [eventDate]);
 
+  useEffect(() => {
+    let isActive = true;
+
+    const loadOrgLocation = async () => {
+      if (locationTouched || location.trim()) {
+        return;
+      }
+
+      try {
+        const storedLocation = await SecureStore.getItemAsync("orgLocation");
+        if (isActive && storedLocation && !locationTouched && !location.trim()) {
+          setLocation(storedLocation);
+        }
+
+        const user = await getCurrentUser();
+        if (
+          isActive &&
+          user?.role === "ORGANISATION" &&
+          user.location &&
+          !locationTouched &&
+          !location.trim()
+        ) {
+          setLocation(user.location);
+        }
+      } catch {}
+    };
+
+    loadOrgLocation();
+
+    return () => {
+      isActive = false;
+    };
+  }, [locationTouched, location]);
+
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     await new Promise((res) => setTimeout(res, 600));
@@ -128,6 +165,7 @@ export default function AddEventOrg() {
       setTitle("");
       setEventDate(null);
       setLocation("");
+      setLocationTouched(false);
       setPrice("£");
       setImageUri(null);
     } catch (error: any) {
@@ -242,9 +280,34 @@ export default function AddEventOrg() {
               <TInput
                 label="Add Location"
                 value={location}
-                onChangeText={setLocation}
+                onChangeText={(value) => {
+                  setLocationTouched(true);
+                  setLocation(value);
+                }}
                 placeholder="e.g. Student Union"
               />
+              <TouchableOpacity
+                style={styles.locationHintBtn}
+                onPress={async () => {
+                  try {
+                    const storedLocation = await SecureStore.getItemAsync(
+                      "orgLocation"
+                    );
+                    const user = await getCurrentUser();
+                    const nextLocation =
+                      storedLocation ||
+                      (user?.role === "ORGANISATION" ? user.location : null);
+
+                    if (nextLocation) {
+                      setLocationTouched(true);
+                      setLocation(nextLocation);
+                    }
+                  } catch {}
+                }}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.locationHintText}>Use org location</Text>
+              </TouchableOpacity>
               <TInput
                 label="Add Price"
                 value={price}
@@ -396,6 +459,24 @@ const styles = StyleSheet.create({
   scrollArea: {
     flex: 1,
     paddingHorizontal: 16,
+  },
+
+  locationHintBtn: {
+    alignSelf: "flex-start",
+    marginTop: -6,
+    marginBottom: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colours.border,
+    backgroundColor: colours.surface,
+  },
+
+  locationHintText: {
+    color: colours.textSecondary,
+    fontSize: 12,
+    fontWeight: "700",
   },
 
   card: {

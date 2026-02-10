@@ -39,7 +39,7 @@ export default function LoginScreen() {
   }, []);
 
   const loginRequest = async (email: string, password: string) => {
-    const url = `${API_URL}/auth/login`;
+    const url = `${API_URL}/auth/login-student`;
     console.log("Calling backend:", url);
 
     const response = await fetch(url, {

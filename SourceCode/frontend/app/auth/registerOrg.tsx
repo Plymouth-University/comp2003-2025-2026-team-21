@@ -22,6 +22,7 @@ export default function RegisterOrg() {
   const router = useRouter();
 
   const [orgName, setOrgName] = useState("");
+  const [orgLocation, setOrgLocation] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [evidenceUri, setEvidenceUri] = useState<string | null>(null);
@@ -49,16 +50,16 @@ export default function RegisterOrg() {
   };
 
   const registerRequest = async () => {
-    const url = `${API_URL}/auth/register`;
+    const url = `${API_URL}/auth/register-org`;
 
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: orgName.trim(),
+        location: orgLocation.trim(),
         email: email.trim(),
         password,
-        role: "ORGANISATION",
       }),
     });
 
@@ -83,13 +84,23 @@ export default function RegisterOrg() {
 
     return data as {
       token: string;
-      user: { id: string; email: string; role: string; name?: string; username?: string };
+      user: {
+        id: string;
+        email: string;
+        role: string;
+        name?: string;
+        username?: string;
+        location?: string | null;
+      };
     };
   };
 
   const handleRegister = async () => {
-    if (!orgName.trim() || !email.trim() || !password) {
-      Alert.alert("Missing Fields", "Please fill in organisation name, email and password.");
+    if (!orgName.trim() || !orgLocation.trim() || !email.trim() || !password) {
+      Alert.alert(
+        "Missing Fields",
+        "Please fill in organisation name, location, email and password."
+      );
       return;
     }
 
@@ -122,6 +133,12 @@ export default function RegisterOrg() {
         await SecureStore.setItemAsync("username", user.name);
       }
 
+      if (user?.location) {
+        await SecureStore.setItemAsync("orgLocation", user.location);
+      } else if (orgLocation.trim()) {
+        await SecureStore.setItemAsync("orgLocation", orgLocation.trim());
+      }
+
       await SecureStore.setItemAsync("orgEvidenceUri", evidenceUri);
 
       Alert.alert("Success", "Organisation account created successfully!");
@@ -152,6 +169,16 @@ export default function RegisterOrg() {
           autoCapitalize="words"
           value={orgName}
           onChangeText={setOrgName}
+        />
+
+        <Text style={styles.label}>Organisation Location</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Street, City"
+          placeholderTextColor={colours.textMuted}
+          autoCapitalize="words"
+          value={orgLocation}
+          onChangeText={setOrgLocation}
         />
 
         <Text style={styles.label}>Organisation Email</Text>

@@ -29,18 +29,17 @@ export default function RegisterStudent() {
     value.length >= 8 && /\d/.test(value);
 
   const registerRequest = async (emailValue: string, usernameValue: string, passwordValue: string) => {
-    const url = `${API_URL}/auth/register`;
+    const url = `${API_URL}/auth/register-student`;
     console.log("Calling backend:", url);
 
     const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: "Student",
         email: emailValue,
         username: usernameValue,
         password: passwordValue,
-        role: "STUDENT",
+        name: "Student",
       }),
     });
 

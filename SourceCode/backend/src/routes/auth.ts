@@ -1,169 +1,172 @@
 import { Router, Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import prisma from "../utils/prisma";
 import { authMiddleware } from "../middleware/authMiddleware";
 
-/**
- * This file defines the /auth routes and exports an Express router.
- * It's mounted in server.ts as:
- *   app.use("/auth", authRoutes);
- *
- * So routes become:
- *   POST /auth/register
- *   POST /auth/login
- *   GET  /auth/me
- */
-
 const router = Router();
-const prisma = new PrismaClient();
 
-/**
- * JWT secret should come from .env (JWT_SECRET=...)
- * You warn if it isn't set (good),
- * and you also guard before jwt.sign (also good).
- */
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
   console.warn("⚠️ JWT_SECRET is not set in environment variables");
 }
 
-/**
- * Expected token payload shape.
- * This matches what you sign in register/login below.
- */
 interface JwtPayload {
   id: string;
   email: string;
-  role: string;
+  role: "STUDENT" | "ORGANISATION";
 }
 
-/**
- * POST /auth/register
- *
- * - Validates required fields
- * - Checks if email/username exists
- * - Hashes password
- * - Creates user
- * - Creates organisation record if role is ORGANISATION
- * - Signs token (auto-login)
- * - Returns token + safe user fields
- */
-router.post("/register", async (req: Request, res: Response) => {
-  const { email, username, password, role, name } = req.body;
-  const isOrganisation = role === "ORGANISATION";
+const signToken = (payload: JwtPayload) => {
+  if (!JWT_SECRET) {
+    throw new Error("JWT secret not configured");
+  }
 
-  // Basic validation - stop early if required fields missing
-  if (!email || !password || !name || (!username && !isOrganisation)) {
-    return res.status(400).json({ error: "Missing email, password, name, or username" });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
+};
+
+const sanitizeStudent = (student: {
+  id: string;
+  email: string;
+  username: string;
+  name: string | null;
+  createdAt: Date;
+  profileImage: Buffer | null;
+  profileImageMimeType: string | null;
+}) => ({
+  id: student.id,
+  email: student.email,
+  username: student.username,
+  role: "STUDENT" as const,
+  name: student.name,
+  createdAt: student.createdAt,
+  profileImage: student.profileImage ? student.profileImage.toString("base64") : null,
+  profileImageMimeType: student.profileImageMimeType,
+});
+
+const sanitizeOrganisation = (org: {
+  id: string;
+  email: string;
+  name: string;
+  location: string;
+  createdAt: Date;
+  evidenceImage: Buffer | null;
+  evidenceImageMimeType: string | null;
+}) => ({
+  id: org.id,
+  email: org.email,
+  role: "ORGANISATION" as const,
+  name: org.name,
+  location: org.location,
+  createdAt: org.createdAt,
+  profileImage: null,
+  profileImageMimeType: null,
+  evidenceImage: org.evidenceImage ? org.evidenceImage.toString("base64") : null,
+  evidenceImageMimeType: org.evidenceImageMimeType,
+});
+
+const emailExists = async (email: string) => {
+  const [student, org] = await Promise.all([
+    prisma.student.findUnique({ where: { email } }),
+    prisma.organisation.findUnique({ where: { email } }),
+  ]);
+
+  return Boolean(student || org);
+};
+
+/**
+ * POST /auth/register-student
+ */
+router.post("/register-student", async (req: Request, res: Response) => {
+  const { email, username, password, name } = req.body;
+
+  if (!email || !username || !password) {
+    return res.status(400).json({ error: "Missing email, username, or password" });
   }
 
   try {
-    // Check if email is already taken
-    const existingEmail = await prisma.user.findUnique({ where: { email } });
-    if (existingEmail) {
+    if (await emailExists(email)) {
       return res.status(400).json({ error: "Email already exists" });
     }
 
-    const normalizeUsername = (value: string) =>
-      value
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "_")
-        .replace(/^_+|_+$/g, "")
-        .slice(0, 20);
-
-    let finalUsername = username?.trim();
-
-    if (!finalUsername && isOrganisation) {
-      const emailBase = email.split("@")[0] || "org";
-      const nameBase = normalizeUsername(name) || normalizeUsername(emailBase) || "org";
-      let candidate = nameBase;
-      let counter = 0;
-
-      while (await prisma.user.findUnique({ where: { username: candidate } })) {
-        counter += 1;
-        candidate = `${nameBase}_${counter}`;
-      }
-
-      finalUsername = candidate;
-    }
-
-    if (!finalUsername) {
-      return res.status(400).json({ error: "Username is required" });
-    }
-
-    const existingUsername = await prisma.user.findUnique({
-      where: { username: finalUsername },
-    });
+    const existingUsername = await prisma.student.findUnique({ where: { username } });
     if (existingUsername) {
       return res.status(400).json({ error: "Username already exists" });
     }
 
-    // Hash password for secure storage
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user in DB
-    const user = await prisma.user.create({
+    const student = await prisma.student.create({
       data: {
         email,
-        username: finalUsername,
+        username,
         password: hashedPassword,
-        role: role || "STUDENT", // default role
-        name,
+        name: name || null,
       },
     });
 
-    if (isOrganisation) {
-      await prisma.organisation.create({
-        data: {
-          name,
-          userId: user.id,
-        },
-      });
-    }
+    const token = signToken({ id: student.id, email: student.email, role: "STUDENT" });
 
-    // If JWT secret missing, you can't sign tokens — treat as server misconfig
-    if (!JWT_SECRET) {
-      return res.status(500).json({ error: "JWT secret not configured" });
-    }
-
-    /**
-     * Create token so user is logged in immediately after registering.
-     * Payload includes id/email/role so the backend can authorize later.
-     */
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role } as JwtPayload,
-      JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    // Return token + safe user fields (important: do NOT send password)
     return res.status(201).json({
-      token, // frontend stores this (usually localStorage/cookie) and sends it on future requests
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        role: user.role,
-        name: user.name,
-      },
+      token,
+      user: sanitizeStudent({
+        ...student,
+        profileImage: student.profileImage ?? null,
+        profileImageMimeType: student.profileImageMimeType ?? null,
+      }),
     });
   } catch (err: any) {
-    console.error("Registration error:", err);
+    console.error("Student registration error:", err);
     return res.status(500).json({ error: "Registration failed" });
   }
 });
 
 /**
- * POST /auth/login
- *
- * - Validates email/password
- * - Finds user
- * - Compares bcrypt password
- * - Signs token
- * - Returns token + safe user fields
+ * POST /auth/register-org
  */
-router.post("/login", async (req: Request, res: Response) => {
+router.post("/register-org", async (req: Request, res: Response) => {
+  const { email, password, name, location } = req.body;
+
+  if (!email || !password || !name || !location) {
+    return res.status(400).json({ error: "Missing email, password, name, or location" });
+  }
+
+  try {
+    if (await emailExists(email)) {
+      return res.status(400).json({ error: "Email already exists" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const org = await prisma.organisation.create({
+      data: {
+        email,
+        password: hashedPassword,
+        name,
+        location,
+      },
+    });
+
+    const token = signToken({ id: org.id, email: org.email, role: "ORGANISATION" });
+
+    return res.status(201).json({
+      token,
+      user: sanitizeOrganisation({
+        ...org,
+        evidenceImage: org.evidenceImage ?? null,
+        evidenceImageMimeType: org.evidenceImageMimeType ?? null,
+      }),
+    });
+  } catch (err: any) {
+    console.error("Organisation registration error:", err);
+    return res.status(500).json({ error: "Registration failed" });
+  }
+});
+
+/**
+ * POST /auth/login-student
+ */
+router.post("/login-student", async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -171,124 +174,142 @@ router.post("/login", async (req: Request, res: Response) => {
   }
 
   try {
-    // Find user by email
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
+    const student = await prisma.student.findUnique({ where: { email } });
 
-    if (!user) return res.status(404).json({ error: "User not found" });
-
-    // Compare password with stored hash
-    const isValid = await bcrypt.compare(password, user.password);
-    if (!isValid) return res.status(401).json({ error: "Invalid password" });
-
-    // Ensure JWT secret exists before signing
-    if (!JWT_SECRET) {
-      return res.status(500).json({ error: "JWT secret not configured" });
+    if (!student) {
+      return res.status(404).json({ error: "Student not found" });
     }
 
-    // Create token
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role } as JwtPayload,
-      JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    const isValid = await bcrypt.compare(password, student.password);
+    if (!isValid) {
+      return res.status(401).json({ error: "Invalid password" });
+    }
 
-    // Return token + safe user fields
+    const token = signToken({ id: student.id, email: student.email, role: "STUDENT" });
+
     return res.json({
       token,
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        name: user.name,
-      },
+      user: sanitizeStudent({
+        ...student,
+        profileImage: student.profileImage ?? null,
+        profileImageMimeType: student.profileImageMimeType ?? null,
+      }),
     });
-  } catch (err) {
-    console.error("Login error:", err);
+  } catch (err: any) {
+    console.error("Student login error:", err);
+    return res.status(500).json({ error: "Login failed" });
+  }
+});
+
+/**
+ * POST /auth/login-org
+ */
+router.post("/login-org", async (req: Request, res: Response) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: "Missing credentials" });
+  }
+
+  try {
+    const org = await prisma.organisation.findUnique({ where: { email } });
+
+    if (!org) {
+      return res.status(404).json({ error: "Organisation not found" });
+    }
+
+    const isValid = await bcrypt.compare(password, org.password);
+    if (!isValid) {
+      return res.status(401).json({ error: "Invalid password" });
+    }
+
+    const token = signToken({ id: org.id, email: org.email, role: "ORGANISATION" });
+
+    return res.json({
+      token,
+      user: sanitizeOrganisation({
+        ...org,
+        evidenceImage: org.evidenceImage ?? null,
+        evidenceImageMimeType: org.evidenceImageMimeType ?? null,
+      }),
+    });
+  } catch (err: any) {
+    console.error("Organisation login error:", err);
     return res.status(500).json({ error: "Login failed" });
   }
 });
 
 /**
  * GET /auth/me
- *
- * Protected endpoint:
- * - Requires authMiddleware
- * - Reads user id from decoded token (req.user)
- * - Fetches latest user info from DB
- * - Returns user
  */
 router.get("/me", authMiddleware, async (req: Request, res: Response) => {
   try {
-    /**
-     * authMiddleware sets req.user = decodedPayload
-     * Here you cast because TS might not know req.user exists.
-     */
     const decoded = (req as any).user as JwtPayload | undefined;
 
-    if (!decoded || !decoded.id) {
-      return res.status(401).json({ error: "Unauthenticated" });
+    if (!decoded) {
+      return res.status(401).json({ error: "Unauthorized" });
     }
 
-    // Fetch user by id and return only safe fields
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.id },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        name: true,
-        createdAt: true,
-        profileImage: true,
-        profileImageMimeType: true,
-      },
+    if (decoded.role === "STUDENT") {
+      const student = await prisma.student.findUnique({ where: { id: decoded.id } });
+      if (!student) return res.status(404).json({ error: "Student not found" });
+
+      return res.json({
+        user: sanitizeStudent({
+          ...student,
+          profileImage: student.profileImage ?? null,
+          profileImageMimeType: student.profileImageMimeType ?? null,
+        }),
+      });
+    }
+
+    const org = await prisma.organisation.findUnique({ where: { id: decoded.id } });
+    if (!org) return res.status(404).json({ error: "Organisation not found" });
+
+    return res.json({
+      user: sanitizeOrganisation({
+        ...org,
+        evidenceImage: org.evidenceImage ?? null,
+        evidenceImageMimeType: org.evidenceImageMimeType ?? null,
+      }),
     });
-
-    if (!user) return res.status(404).json({ error: "User not found" });
-
-    const userWithImage = {
-      ...user,
-      profileImage: user.profileImage ? user.profileImage.toString("base64") : null,
-    };
-
-    return res.json({ user: userWithImage });
-  } catch (err) {
-    console.error("Me endpoint error:", err);
+  } catch (err: any) {
+    console.error("Fetch current user error:", err);
     return res.status(500).json({ error: "Failed to fetch user" });
   }
 });
 
 /**
  * GET /auth/user/:userId
- *
- * Returns public profile data for a user.
  */
 router.get("/user/:userId", authMiddleware, async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        username: true,
-        name: true,
-        profileImage: true,
-        profileImageMimeType: true,
-        createdAt: true,
-      },
+    const student = await prisma.student.findUnique({ where: { id: userId } });
+    if (student) {
+      return res.json({
+        user: sanitizeStudent({
+          ...student,
+          profileImage: student.profileImage ?? null,
+          profileImageMimeType: student.profileImageMimeType ?? null,
+        }),
+      });
+    }
+
+    const org = await prisma.organisation.findUnique({ where: { id: userId } });
+    if (!org) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    return res.json({
+      user: sanitizeOrganisation({
+        ...org,
+        evidenceImage: org.evidenceImage ?? null,
+        evidenceImageMimeType: org.evidenceImageMimeType ?? null,
+      }),
     });
-
-    if (!user) return res.status(404).json({ error: "User not found" });
-
-    const userWithImage = {
-      ...user,
-      profileImage: user.profileImage ? user.profileImage.toString("base64") : null,
-    };
-
-    return res.json({ user: userWithImage });
-  } catch (err) {
+  } catch (err: any) {
     console.error("User profile endpoint error:", err);
     return res.status(500).json({ error: "Failed to fetch user profile" });
   }
@@ -296,50 +317,38 @@ router.get("/user/:userId", authMiddleware, async (req: Request, res: Response) 
 
 /**
  * PUT /auth/profile-image
- *
- * Updates the current user's profile image.
- * Expects: { image: base64, imageMimeType: string }
  */
 router.put("/profile-image", authMiddleware, async (req: Request, res: Response) => {
   try {
     const decoded = (req as any).user as JwtPayload | undefined;
 
-    if (!decoded || !decoded.id) {
-      return res.status(401).json({ error: "Unauthenticated" });
+    if (!decoded || decoded.role !== "STUDENT") {
+      return res.status(403).json({ error: "Students only" });
     }
 
     const { image, imageMimeType } = req.body;
-
     if (!image || !imageMimeType) {
       return res.status(400).json({ error: "Missing image or imageMimeType" });
     }
 
-    const updatedUser = await prisma.user.update({
+    const imageBuffer = Buffer.from(image, "base64");
+
+    const updatedStudent = await prisma.student.update({
       where: { id: decoded.id },
       data: {
-        profileImage: Buffer.from(image, "base64"),
+        profileImage: imageBuffer,
         profileImageMimeType: imageMimeType,
-      },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        name: true,
-        createdAt: true,
-        profileImage: true,
-        profileImageMimeType: true,
       },
     });
 
-    const userWithImage = {
-      ...updatedUser,
-      profileImage: updatedUser.profileImage
-        ? updatedUser.profileImage.toString("base64")
-        : null,
-    };
-
-    return res.json({ user: userWithImage });
-  } catch (err) {
+    return res.json({
+      user: sanitizeStudent({
+        ...updatedStudent,
+        profileImage: updatedStudent.profileImage ?? null,
+        profileImageMimeType: updatedStudent.profileImageMimeType ?? null,
+      }),
+    });
+  } catch (err: any) {
     console.error("Profile image update error:", err);
     return res.status(500).json({ error: "Failed to update profile image" });
   }
@@ -347,48 +356,63 @@ router.put("/profile-image", authMiddleware, async (req: Request, res: Response)
 
 /**
  * PUT /auth/password
- *
- * Updates the current user's password.
- * Expects: { currentPassword, newPassword, confirmPassword }
  */
 router.put("/password", authMiddleware, async (req: Request, res: Response) => {
   try {
     const decoded = (req as any).user as JwtPayload | undefined;
-
-    if (!decoded || !decoded.id) {
-      return res.status(401).json({ error: "Unauthenticated" });
-    }
-
     const { currentPassword, newPassword, confirmPassword } = req.body;
+
+    if (!decoded) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
 
     if (!currentPassword || !newPassword || !confirmPassword) {
       return res.status(400).json({ error: "Missing password fields" });
     }
 
     if (newPassword !== confirmPassword) {
-      return res.status(400).json({ error: "Passwords do not match" });
+      return res.status(400).json({ error: "New passwords do not match" });
     }
 
-    const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+    if (decoded.role === "STUDENT") {
+      const student = await prisma.student.findUnique({ where: { id: decoded.id } });
 
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      if (!student) {
+        return res.status(404).json({ error: "Student not found" });
+      }
+
+      const isValid = await bcrypt.compare(currentPassword, student.password);
+      if (!isValid) {
+        return res.status(401).json({ error: "Current password is incorrect" });
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await prisma.student.update({
+        where: { id: decoded.id },
+        data: { password: hashedPassword },
+      });
+
+      return res.json({ message: "Password updated" });
     }
 
-    const isValid = await bcrypt.compare(currentPassword, user.password);
+    const org = await prisma.organisation.findUnique({ where: { id: decoded.id } });
+    if (!org) {
+      return res.status(404).json({ error: "Organisation not found" });
+    }
+
+    const isValid = await bcrypt.compare(currentPassword, org.password);
     if (!isValid) {
       return res.status(401).json({ error: "Current password is incorrect" });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    await prisma.user.update({
+    await prisma.organisation.update({
       where: { id: decoded.id },
       data: { password: hashedPassword },
     });
 
     return res.json({ message: "Password updated" });
-  } catch (err) {
+  } catch (err: any) {
     console.error("Password update error:", err);
     return res.status(500).json({ error: "Failed to update password" });
   }

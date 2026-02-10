@@ -15,8 +15,8 @@ export interface EventRecord {
   eventImageMimeType: string | null;
   organiser: {
     id: string;
-    username: string;
-    name: string | null;
+    name: string;
+    location?: string | null;
   };
 }
 

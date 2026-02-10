@@ -7,29 +7,28 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
+model Student {
   id                   String   @id @default(uuid())
   email                String   @unique
   username             String   @unique
   password             String
-  role                 Role     @default(STUDENT)
   name                 String?
   createdAt            DateTime @default(now())
   profileImage         Bytes?
   profileImageMimeType String?
-  events               Event[]
-  Posts                Posts[]
-  organisation         Organisation?
+  posts                Posts[]
 }
 
 model Organisation {
   id                   String   @id @default(uuid())
+  email                String   @unique
+  password             String
   name                 String
+  location             String
   createdAt            DateTime @default(now())
   evidenceImage        Bytes?
   evidenceImageMimeType String?
-  userId               String   @unique
-  user                 User     @relation(fields: [userId], references: [id])
+  events               Event[]
 }
 
 model Event {
@@ -43,7 +42,7 @@ model Event {
   organiserId        String
   eventImage         Bytes?
   eventImageMimeType String?
-  organiser          User     @relation(fields: [organiserId], references: [id])
+  organiser          Organisation @relation(fields: [organiserId], references: [id])
 }
 
 model Posts {
@@ -54,11 +53,5 @@ model Posts {
   createdAt     DateTime @default(now())
   likes         Int      @default(0)
   authorId      String
-  User          User     @relation(fields: [authorId], references: [id])
-}
-
-enum Role {
-  STUDENT
-  ORGANISATION
-  ADMIN
+  author        Student  @relation(fields: [authorId], references: [id])
 }
