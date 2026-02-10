@@ -116,6 +116,22 @@ export async function getEvents(): Promise<EventRecord[]> {
   return data.events as EventRecord[];
 }
 
+export async function getEventsByOrganiser(
+  organiserId: string
+): Promise<EventRecord[]> {
+  const response = await fetch(`${API_URL}/events/organiser/${organiserId}`, {
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Failed to fetch organiser events");
+  }
+
+  const data = await response.json();
+  return data.events as EventRecord[];
+}
+
 export async function getMyEvents(): Promise<EventRecord[]> {
   const token = await getAuthToken();
 

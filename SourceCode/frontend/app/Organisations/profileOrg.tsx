@@ -7,11 +7,16 @@ import {
   RefreshControl,
   TouchableOpacity,
   Image,
+  Modal,
+  Pressable,
+  Linking,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { getUserPosts, getCurrentUser, getUserProfile, Post } from "../../lib/postsApi";
+import { EventRecord, getEventsByOrganiser } from "../../lib/eventsApi";
+import { getStaticMapUrl } from "../../lib/staticMaps";
 import { colours } from "../../lib/theme/colours";
 
 export default function ProfileOrg() {
@@ -31,8 +36,13 @@ export default function ProfileOrg() {
     "STUDENT" | "ORGANISATION" | null
   >(null);
   const [orgPosts, setOrgPosts] = useState<Post[]>([]);
+  const [orgEvents, setOrgEvents] = useState<EventRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingEvents, setLoadingEvents] = useState(true);
   const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"posts" | "events">("posts");
+  const [selectedEvent, setSelectedEvent] = useState<EventRecord | null>(null);
+  const [modalMapUrl, setModalMapUrl] = useState<string | null>(null);
 
   const totalLikes = useMemo(
     () => orgPosts.reduce((sum, post) => sum + (post.likes ?? 0), 0),
@@ -48,6 +58,12 @@ export default function ProfileOrg() {
   const showSettings =
     currentUserRole === "ORGANISATION" &&
     (!routeUserId || (currentUserId && routeUserId === currentUserId));
+
+  const mapUrl = selectedEvent
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+        selectedEvent.organiser.location ?? selectedEvent.location
+      )}`
+    : "";
 
   useEffect(() => {
     loadOrgProfile(routeUserId, routeUsername);
@@ -92,12 +108,33 @@ export default function ProfileOrg() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!selectedEvent) {
+      setModalMapUrl(null);
+      return;
+    }
+
+    const mapLocation = selectedEvent.organiser.location ?? selectedEvent.location;
+    getStaticMapUrl(mapLocation).then((url) => {
+      if (!cancelled) {
+        setModalMapUrl(url);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedEvent]);
+
   const loadOrgProfile = async (
     targetUserId: string | null,
     targetUsername: string | null
   ) => {
     try {
       setLoading(true);
+      setLoadingEvents(true);
       setProfileImageUri(null);
 
       let finalOrgName: string | null = null;
@@ -156,8 +193,12 @@ export default function ProfileOrg() {
 
       if (finalUserId) {
         setUserId(finalUserId);
-        const posts = await getUserPosts(finalUserId);
+        const [posts, events] = await Promise.all([
+          getUserPosts(finalUserId),
+          getEventsByOrganiser(finalUserId),
+        ]);
         setOrgPosts(posts);
+        setOrgEvents(events);
 
         if (!finalOrgName && posts.length > 0) {
           const fromPostName = posts[0]?.User?.name;
@@ -171,7 +212,20 @@ export default function ProfileOrg() {
       setOrgName("Error loading profile");
     } finally {
       setLoading(false);
+      setLoadingEvents(false);
     }
+  };
+
+  const formatEventDate = (value: string) => {
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return "TBD";
+    return parsed.toLocaleString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   const handleRefresh = useCallback(async () => {
@@ -230,40 +284,176 @@ export default function ProfileOrg() {
           </View>
         </View>
 
-        <Text style={styles.likesText}>Likes: {totalLikes}</Text>
+        <View style={styles.tabRow}>
+          <TouchableOpacity
+            style={[styles.tabBtn, activeTab === "posts" && styles.tabBtnActive]}
+            onPress={() => setActiveTab("posts")}
+            activeOpacity={0.85}
+          >
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "posts" && styles.tabTextActive,
+              ]}
+            >
+              Posts
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tabBtn, activeTab === "events" && styles.tabBtnActive]}
+            onPress={() => setActiveTab("events")}
+            activeOpacity={0.85}
+          >
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "events" && styles.tabTextActive,
+              ]}
+            >
+              Events
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-        <Text style={styles.postsLabel}>Posts: {orgPosts.length}</Text>
+        {activeTab === "posts" ? (
+          <>
+            <Text style={styles.likesText}>Likes: {totalLikes}</Text>
 
-        {loading ? (
-          <Text style={styles.loadingText}>Loading posts...</Text>
-        ) : orgPosts.length === 0 ? (
-          <Text style={styles.emptyText}>No posts yet</Text>
+            <Text style={styles.postsLabel}>Posts: {orgPosts.length}</Text>
+
+            {loading ? (
+              <Text style={styles.loadingText}>Loading posts...</Text>
+            ) : orgPosts.length === 0 ? (
+              <Text style={styles.emptyText}>No posts yet</Text>
+            ) : (
+              <View style={styles.grid}>
+                {orgPosts.map((post) => (
+                  <TouchableOpacity
+                    key={post.id}
+                    style={styles.tile}
+                    activeOpacity={0.8}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/post/[postId]",
+                        params: { postId: post.id },
+                      })
+                    }
+                  >
+                    <Image
+                      source={{
+                        uri: `data:${post.imageMimeType};base64,${post.image}`,
+                      }}
+                      style={styles.postImage}
+                      resizeMode="cover"
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </>
         ) : (
-          <View style={styles.grid}>
-            {orgPosts.map((post) => (
-              <TouchableOpacity
-                key={post.id}
-                style={styles.tile}
-                activeOpacity={0.8}
-                onPress={() =>
-                  router.push({
-                    pathname: "/post/[postId]",
-                    params: { postId: post.id },
-                  })
-                }
-              >
-                <Image
-                  source={{
-                    uri: `data:${post.imageMimeType};base64,${post.image}`,
-                  }}
-                  style={styles.postImage}
-                  resizeMode="cover"
-                />
-              </TouchableOpacity>
-            ))}
-          </View>
+          <>
+            <Text style={styles.postsLabel}>Events: {orgEvents.length}</Text>
+
+            {loadingEvents ? (
+              <Text style={styles.loadingText}>Loading events...</Text>
+            ) : orgEvents.length === 0 ? (
+              <Text style={styles.emptyText}>No events yet</Text>
+            ) : (
+              <View style={styles.eventsList}>
+                {orgEvents.map((event) => (
+                  <TouchableOpacity
+                    key={event.id}
+                    style={styles.eventCard}
+                    activeOpacity={0.85}
+                    onPress={() => setSelectedEvent(event)}
+                  >
+                    <View style={styles.eventImageWrap}>
+                      {event.eventImage ? (
+                        <Image
+                          source={{
+                            uri: `data:${event.eventImageMimeType ?? "image/jpeg"};base64,${event.eventImage}`,
+                          }}
+                          style={styles.eventImage}
+                        />
+                      ) : (
+                        <Text style={styles.eventImageText}>image</Text>
+                      )}
+                    </View>
+                    <View style={styles.eventInfo}>
+                      <Text style={styles.eventTitle} numberOfLines={1}>
+                        {event.title}
+                      </Text>
+                      <Text style={styles.eventMeta} numberOfLines={1}>
+                        {formatEventDate(event.date)}
+                      </Text>
+                      <Text style={styles.eventMeta} numberOfLines={1}>
+                        {event.location}
+                      </Text>
+                      <Text style={styles.eventPrice} numberOfLines={1}>
+                        {event.price}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </>
         )}
       </ScrollView>
+
+      <Modal
+        visible={Boolean(selectedEvent)}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSelectedEvent(null)}
+      >
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setSelectedEvent(null)}
+        >
+          <Pressable style={styles.modalCard} onPress={() => null}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{selectedEvent?.title}</Text>
+              <TouchableOpacity onPress={() => setSelectedEvent(null)}>
+                <Text style={styles.modalClose}>Close</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalMeta}>
+              {selectedEvent ? formatEventDate(selectedEvent.date) : ""}
+            </Text>
+            <Text style={styles.modalMeta}>{selectedEvent?.location}</Text>
+            <Text style={styles.modalMeta}>{selectedEvent?.price}</Text>
+
+            <View style={styles.mapFrame}>
+              {modalMapUrl ? (
+                <Image source={{ uri: modalMapUrl }} style={styles.mapImage} />
+              ) : selectedEvent?.eventImage ? (
+                <Image
+                  source={{
+                    uri: `data:${selectedEvent.eventImageMimeType ?? "image/jpeg"};base64,${selectedEvent.eventImage}`,
+                  }}
+                  style={styles.mapImage}
+                />
+              ) : (
+                <View style={styles.mapFallback}>
+                  <Text style={styles.eventImageText}>image</Text>
+                </View>
+              )}
+            </View>
+
+            {selectedEvent ? (
+              <TouchableOpacity
+                style={styles.openMapBtn}
+                onPress={() => Linking.openURL(mapUrl)}
+              >
+                <Text style={styles.openMapText}>Open in Maps</Text>
+              </TouchableOpacity>
+            ) : null}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -374,6 +564,33 @@ const styles = StyleSheet.create({
     resizeMode: "cover",
   },
 
+  tabRow: {
+    flexDirection: "row",
+    gap: 10,
+    justifyContent: "center",
+    marginBottom: 14,
+  },
+  tabBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderRadius: 999,
+    backgroundColor: colours.surface,
+    borderWidth: 1,
+    borderColor: colours.border,
+  },
+  tabBtnActive: {
+    backgroundColor: colours.glass,
+    borderColor: colours.primary,
+  },
+  tabText: {
+    color: colours.textSecondary,
+    fontWeight: "800",
+    fontSize: 14,
+  },
+  tabTextActive: {
+    color: colours.textPrimary,
+  },
+
   likesText: {
     textAlign: "center",
     color: colours.textPrimary,
@@ -388,6 +605,124 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "900",
     marginBottom: 14,
+  },
+
+  eventsList: {
+    gap: 12,
+    paddingBottom: 16,
+  },
+  eventCard: {
+    flexDirection: "row",
+    gap: 12,
+    padding: 12,
+    borderRadius: 16,
+    backgroundColor: colours.surface,
+    borderWidth: 1,
+    borderColor: colours.border,
+  },
+  eventImageWrap: {
+    width: 86,
+    height: 86,
+    borderRadius: 12,
+    backgroundColor: colours.glass,
+    borderWidth: 1,
+    borderColor: colours.border,
+    overflow: "hidden",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  eventImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
+  },
+  eventImageText: {
+    color: colours.textMuted,
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  eventInfo: {
+    flex: 1,
+    justifyContent: "center",
+    gap: 4,
+  },
+  eventTitle: {
+    color: colours.textPrimary,
+    fontSize: 16,
+    fontWeight: "900",
+  },
+  eventMeta: {
+    color: colours.textSecondary,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  eventPrice: {
+    color: colours.textPrimary,
+    fontSize: 13,
+    fontWeight: "900",
+  },
+
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.55)",
+    padding: 18,
+    justifyContent: "center",
+  },
+  modalCard: {
+    backgroundColor: colours.surface,
+    borderRadius: 18,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: colours.border,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: colours.textPrimary,
+    flex: 1,
+    paddingRight: 12,
+  },
+  modalClose: {
+    color: colours.textMuted,
+    fontWeight: "700",
+  },
+  modalMeta: {
+    color: colours.textPrimary,
+    fontSize: 16,
+    marginBottom: 6,
+  },
+  mapFrame: {
+    height: 220,
+    borderRadius: 14,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: colours.border,
+    marginTop: 10,
+  },
+  mapImage: {
+    flex: 1,
+  },
+  mapFallback: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  openMapBtn: {
+    marginTop: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: colours.primary,
+    alignItems: "center",
+  },
+  openMapText: {
+    color: colours.surface,
+    fontWeight: "700",
   },
 
   grid: {

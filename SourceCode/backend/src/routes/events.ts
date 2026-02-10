@@ -8,6 +8,9 @@ const router = Router();
 // Public: get all events
 router.get("/", eventsController.getAllEvents);
 
+// Public: get events for a specific organiser
+router.get("/organiser/:organiserId", eventsController.getEventsByOrganiser);
+
 // Organisations only: get events created by the logged-in organiser
 router.get(
 	"/mine",

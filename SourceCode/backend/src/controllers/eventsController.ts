@@ -119,6 +119,45 @@ export const getAllEvents = async (req: Request, res: Response) => {
   }
 };
 
+export const getEventsByOrganiser = async (req: Request, res: Response) => {
+  try {
+    const { organiserId } = req.params;
+
+    if (!organiserId) {
+      return res.status(400).json({ message: "Missing organiserId" });
+    }
+
+    const events = await prisma.event.findMany({
+      where: { organiserId },
+      orderBy: { date: "asc" },
+      include: {
+        organiser: {
+          select: {
+            id: true,
+            name: true,
+            location: true,
+          },
+        },
+      },
+    });
+
+    const eventsWithBase64 = events.map((event) => ({
+      ...event,
+      organiser: {
+        id: event.organiser.id,
+        name: event.organiser.name,
+        location: event.organiser.location,
+      },
+      eventImage: event.eventImage ? event.eventImage.toString("base64") : null,
+    }));
+
+    return res.json({ events: eventsWithBase64 });
+  } catch (error) {
+    console.error("Error fetching organiser events:", error);
+    return res.status(500).json({ message: "Server error", error });
+  }
+};
+
 export const getMyEvents = async (req: Request, res: Response) => {
   try {
     // @ts-ignore - user is set by authMiddleware
@@ -277,6 +316,7 @@ export const deleteEvent = async (req: Request, res: Response) => {
 const eventsController = {
   createEvent,
   getAllEvents,
+  getEventsByOrganiser,
   getMyEvents,
   updateEvent,
   deleteEvent,
