@@ -30,6 +30,7 @@ export default function EventsOrg() {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(selectedDay);
   const [items, setItems] = useState([
+    { label: "All", value: "All" },
     { label: "Monday", value: "Monday" },
     { label: "Tuesday", value: "Tuesday" },
     { label: "Wednesday", value: "Wednesday" },
@@ -44,7 +45,7 @@ export default function EventsOrg() {
       id: "1",
       day: "Tuesday",
       title: "Party",
-      dateLabel: "Now",
+      dateLabel: "12/03 8:00 PM",
       location: "My basement",
       price: "£10000",
     },
@@ -52,7 +53,7 @@ export default function EventsOrg() {
       id: "2",
       day: "Monday",
       title: "Gaming Society Meetup",
-      dateLabel: "Mon 20:30",
+      dateLabel: "09/03 8:30 PM",
       location: "Student Union",
       price: "£3",
     },
@@ -60,7 +61,7 @@ export default function EventsOrg() {
       id: "3",
       day: "Monday",
       title: "Volleyball Tournament",
-      dateLabel: "Mon 17:00",
+      dateLabel: "09/03 5:00 PM",
       location: "Sports Hall",
       price: "£2",
     },
@@ -73,12 +74,12 @@ export default function EventsOrg() {
   }, []);
   useTabRefresh(handleRefresh);
 
-const visibleEvents = events.filter(
-  (e) =>
-    e.day === selectedDay &&
-    (e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     e.location.toLowerCase().includes(searchQuery.toLowerCase()))
-);
+  const visibleEvents = events.filter(
+    (e) =>
+      (selectedDay === "All" || e.day === selectedDay) &&
+      (e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.location.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <FilterBar
@@ -104,7 +105,9 @@ const visibleEvents = events.filter(
         }
       >
 
-        <Text style={styles.sectionTitle}>Events on {selectedDay}</Text>
+        <Text style={styles.sectionTitle}>
+          {selectedDay === "All" ? "All events" : `Events on ${selectedDay}`}
+        </Text>
 
         {visibleEvents.map((ev) => (
           <View key={ev.id} style={styles.eventCard}>

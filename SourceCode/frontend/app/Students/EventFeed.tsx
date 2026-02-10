@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -6,12 +6,14 @@ import {
   RefreshControl,
   Platform,
   StyleSheet,
+  Image,
 } from "react-native";
 import FilterBar from "../components/FilterBar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colours } from "../../lib/theme/colours";
 import { Spacing } from "../../lib/theme/spacing";
 import { useTabRefresh } from "../hooks/useTabRefresh";
+import { getEvents, EventRecord } from "../../lib/eventsApi";
 
 type EventItem = {
   id: string;
@@ -20,6 +22,8 @@ type EventItem = {
   dateLabel: string;
   location: string;
   price: string;
+  image: string | null;
+  imageMimeType: string | null;
 };
 
 export default function EventFeed() {
@@ -29,7 +33,9 @@ export default function EventFeed() {
   const [refreshing, setRefreshing] = useState(false);
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(selectedDay);
+  const [events, setEvents] = useState<EventRecord[]>([]);
   const [items, setItems] = useState([
+    { label: "All", value: "All" },
     { label: "Monday", value: "Monday" },
     { label: "Tuesday", value: "Tuesday" },
     { label: "Wednesday", value: "Wednesday" },
@@ -39,41 +45,72 @@ export default function EventFeed() {
     { label: "Sunday", value: "Sunday" },
   ]);
 
-  const events: EventItem[] = [
-    {
-      id: "1",
-      day: "Monday",
-      title: "Open Mic Night",
-      dateLabel: "Mon 19:00",
-      location: "Campus Café",
-      price: "£0",
-    },
-    {
-      id: "2",
-      day: "Monday",
-      title: "Gaming Society Meetup",
-      dateLabel: "Mon 20:30",
-      location: "Student Union",
-      price: "£3",
-    },
-    {
-      id: "3",
-      day: "Monday",
-      title: "Volleyball Tournament",
-      dateLabel: "Mon 17:00",
-      location: "Sports Hall",
-      price: "£2",
-    },
+  const dayNames = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
   ];
 
- const handleRefresh = useCallback(async () => {
-     setRefreshing(true);
-     await new Promise((res) => setTimeout(res, 800));
-     setRefreshing(false);
-   }, []);
+  const fetchEvents = useCallback(async () => {
+    const data = await getEvents();
+    setEvents(data);
+  }, []);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await fetchEvents();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchEvents]);
    useTabRefresh(handleRefresh);
 
-  const visibleEvents = events.filter((e) => e.day === selectedDay);
+  useEffect(() => {
+    fetchEvents().catch((error) => {
+      console.warn("Failed to fetch events:", error);
+    });
+  }, [fetchEvents]);
+
+  const eventItems: EventItem[] = useMemo(
+    () =>
+      events.map((event) => {
+        const eventDate = new Date(event.date);
+        const isValidDate = !Number.isNaN(eventDate.getTime());
+        const dayName = isValidDate ? dayNames[eventDate.getDay()] : "Monday";
+        const dateLabel = isValidDate
+          ? `${eventDate.toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "2-digit",
+            })} ${eventDate.toLocaleTimeString("en-US", {
+              hour: "numeric",
+              minute: "2-digit",
+              hour12: true,
+            })}`
+          : "TBD";
+
+        return {
+          id: event.id,
+          day: dayName,
+          title: event.title,
+          dateLabel,
+          location: event.location,
+          price: event.price,
+          image: event.eventImage,
+          imageMimeType: event.eventImageMimeType,
+        };
+      }),
+    [events]
+  );
+
+  const visibleEvents =
+    selectedDay === "All"
+      ? eventItems
+      : eventItems.filter((e) => e.day === selectedDay);
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -99,12 +136,23 @@ export default function EventFeed() {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       >
-        <Text style={styles.sectionTitle}>Events on {selectedDay}</Text>
+        <Text style={styles.sectionTitle}>
+          {selectedDay === "All" ? "All events" : `Events on ${selectedDay}`}
+        </Text>
 
         {visibleEvents.map((ev) => (
           <View key={ev.id} style={styles.eventCard}>
             <View style={styles.eventImage}>
-              <Text style={styles.eventImageText}>image</Text>
+              {ev.image ? (
+                <Image
+                  source={{
+                    uri: `data:${ev.imageMimeType ?? "image/jpeg"};base64,${ev.image}`,
+                  }}
+                  style={styles.eventImageFill}
+                />
+              ) : (
+                <Text style={styles.eventImageText}>image</Text>
+              )}
             </View>
 
             <View style={styles.eventInfoRow}>
@@ -175,6 +223,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 14,
     overflow: "hidden",
+  },
+
+  eventImageFill: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
   },
 
   eventImageText: {

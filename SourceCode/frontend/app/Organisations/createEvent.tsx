@@ -15,6 +15,8 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { colours } from "../../lib/theme/colours";
+import { createEvent } from "../../lib/eventsApi";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 export default function AddEventOrg() {
   const router = useRouter();
@@ -24,16 +26,59 @@ export default function AddEventOrg() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const [title, setTitle] = useState("");
-  const [date, setDate] = useState("");
+  const [eventDate, setEventDate] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [location, setLocation] = useState("");
-  const [price, setPrice] = useState("");
+  const [price, setPrice] = useState("£");
   const [imageUri, setImageUri] = useState<string | null>(null);
 
   const bottomPad = 110 + Math.max(insets.bottom, 0);
 
   const canConfirm = useMemo(() => {
-    return title.trim() && date.trim() && location.trim() && price.trim();
-  }, [title, date, location, price]);
+    const hasPrice = price.replace(/[^0-9]/g, "").length > 0;
+    return Boolean(title.trim() && eventDate && location.trim() && hasPrice);
+  }, [title, eventDate, location, price]);
+
+  const formatPriceDisplay = (rawValue: string) => {
+    const cleaned = rawValue.replace(/£/g, "").replace(/[^0-9.]/g, "");
+    if (!cleaned) {
+      return "£";
+    }
+
+    const parts = cleaned.split(".");
+    const whole = parts[0] || "0";
+    const fractional = parts.slice(1).join("").slice(0, 2);
+    const hasDot = parts.length > 1;
+
+    return `£${whole}${hasDot ? "." + fractional : ""}`;
+  };
+
+  const normalizePrice = (rawValue: string) => {
+    const cleaned = rawValue.replace(/£/g, "").replace(/[^0-9.]/g, "");
+    if (!cleaned || cleaned === ".") {
+      return "£0.00";
+    }
+
+    const parts = cleaned.split(".");
+    const whole = parts[0] || "0";
+    const fractional = (parts[1] || "").padEnd(2, "0").slice(0, 2);
+
+    return `£${whole}.${fractional}`;
+  };
+
+  const formattedDate = useMemo(() => {
+    if (!eventDate) {
+      return "";
+    }
+
+    return eventDate.toLocaleString("en-GB", {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }, [eventDate]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -66,12 +111,31 @@ export default function AddEventOrg() {
       return;
     }
 
-    Alert.alert("Created (placeholder)", "Wire this up to your backend create-event endpoint later.");
-    setTitle("");
-    setDate("");
-    setLocation("");
-    setPrice("");
-    setImageUri(null);
+    try {
+      await createEvent({
+        title: title.trim(),
+        description: "",
+        date: eventDate?.toISOString() ?? "",
+        location: location.trim(),
+        price: normalizePrice(price),
+        imageUri,
+      });
+
+      Alert.alert("Success", "Event created successfully!", [
+        { text: "OK", onPress: () => router.back() },
+      ]);
+
+      setTitle("");
+      setEventDate(null);
+      setLocation("");
+      setPrice("£");
+      setImageUri(null);
+    } catch (error: any) {
+      Alert.alert(
+        "Error",
+        error.message || "Failed to create event. Please try again."
+      );
+    }
   };
 
   return (
@@ -128,12 +192,50 @@ export default function AddEventOrg() {
                 onChangeText={setTitle}
                 placeholder="Event title"
               />
-              <TInput
-                label="Add Date"
-                value={date}
-                onChangeText={setDate}
-                placeholder="e.g. Fri 19:00"
-              />
+              <View style={styles.fieldWrap}>
+                <Text style={styles.fieldLabel}>Add Date</Text>
+                <TouchableOpacity
+                  style={styles.dateInput}
+                  onPress={() => setShowDatePicker(true)}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.dateInputText,
+                      !formattedDate && styles.datePlaceholder,
+                    ]}
+                  >
+                    {formattedDate || "Select date and time"}
+                  </Text>
+                </TouchableOpacity>
+
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={eventDate ?? new Date()}
+                    mode="datetime"
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
+                    onChange={(event, selectedDate) => {
+                      if (Platform.OS !== "ios") {
+                        setShowDatePicker(false);
+                      }
+
+                      if (selectedDate) {
+                        setEventDate(selectedDate);
+                      }
+                    }}
+                  />
+                )}
+
+                {Platform.OS === "ios" && showDatePicker && (
+                  <TouchableOpacity
+                    style={styles.dateDoneBtn}
+                    onPress={() => setShowDatePicker(false)}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.dateDoneText}>Done</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
 
             <View style={styles.colRight}>
@@ -146,9 +248,10 @@ export default function AddEventOrg() {
               <TInput
                 label="Add Price"
                 value={price}
-                onChangeText={setPrice}
-                placeholder="e.g. £5"
-                keyboardType="default"
+                onChangeText={(value) => setPrice(formatPriceDisplay(value))}
+                onBlur={() => setPrice(normalizePrice(price))}
+                placeholder="e.g. £10.00"
+                keyboardType="decimal-pad"
               />
             </View>
           </View>
@@ -163,8 +266,6 @@ export default function AddEventOrg() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-
-    
     </SafeAreaView>
   );
 }
@@ -173,8 +274,9 @@ function TInput(props: {
   label: string;
   value: string;
   onChangeText: (v: string) => void;
+  onBlur?: () => void;
   placeholder: string;
-  keyboardType?: "default" | "email-address" | "numeric";
+  keyboardType?: "default" | "email-address" | "numeric" | "decimal-pad";
 }) {
   return (
     <View style={styles.fieldWrap}>
@@ -183,6 +285,7 @@ function TInput(props: {
         style={styles.fieldInput}
         value={props.value}
         onChangeText={props.onChangeText}
+        onBlur={props.onBlur}
         placeholder={props.placeholder}
         placeholderTextColor={colours.textMuted}
         autoCapitalize="none"
@@ -196,6 +299,41 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colours.background,
+  },
+
+  dateInput: {
+    height: 44,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: colours.border,
+    backgroundColor: colours.glass,
+    justifyContent: "center",
+  },
+
+  dateInputText: {
+    color: colours.textPrimary,
+    fontSize: 15,
+  },
+
+  datePlaceholder: {
+    color: colours.textMuted,
+  },
+
+  dateDoneBtn: {
+    marginTop: 8,
+    alignSelf: "flex-start",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: colours.surface,
+    borderWidth: 1,
+    borderColor: colours.border,
+  },
+
+  dateDoneText: {
+    color: colours.textPrimary,
+    fontWeight: "700",
   },
 
   topBar: {

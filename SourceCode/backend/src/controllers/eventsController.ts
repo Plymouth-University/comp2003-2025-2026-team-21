@@ -25,10 +25,10 @@ export const createEvent = async (req: Request, res: Response) => {
       eventImageMimeType,
     } = req.body;
 
-    if (!title || !description || !date || !location || !price) {
+    if (!title || !date || !location || !price) {
       return res.status(400).json({
         message:
-          "Missing required fields: title, description, date, location, price",
+          "Missing required fields: title, date, location, price",
       });
     }
 
@@ -46,10 +46,12 @@ export const createEvent = async (req: Request, res: Response) => {
       ? Buffer.from(eventImage, "base64")
       : undefined;
 
+    const safeDescription = typeof description === "string" ? description : "";
+
     const event = await prisma.event.create({
       data: {
         title,
-        description,
+        description: safeDescription,
         date: new Date(date),
         location,
         price,
