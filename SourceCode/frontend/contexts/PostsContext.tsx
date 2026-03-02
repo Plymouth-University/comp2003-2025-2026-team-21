@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import * as SecureStore from "expo-secure-store";
 import * as postsApi from "../lib/postsApi";
+import { useRouter } from "expo-router";
+import { AuthError } from "../lib/auth";
 
 export type Post = {
   id: string;
@@ -28,6 +30,7 @@ const PostsContext = createContext<PostsContextType | undefined>(undefined);
 export function PostsProvider({ children }: { children: ReactNode }) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     loadPosts();
@@ -63,8 +66,14 @@ export function PostsProvider({ children }: { children: ReactNode }) {
       }));
 
       setPosts(formattedPosts);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to load posts:", error);
+      // if the token has expired, take the user back to the login screen
+      if (error instanceof AuthError) {
+        await SecureStore.deleteItemAsync("authToken");
+        await SecureStore.deleteItemAsync("userRole");
+        router.replace("/");
+      }
     } finally {
       setLoading(false);
     }
@@ -91,8 +100,13 @@ export function PostsProvider({ children }: { children: ReactNode }) {
       };
 
       setPosts((prev) => [newPost, ...prev]);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to create post:", error);
+      if (error instanceof AuthError) {
+        await SecureStore.deleteItemAsync("authToken");
+        await SecureStore.deleteItemAsync("userRole");
+        router.replace("/");
+      }
       throw error;
     }
   };
@@ -119,7 +133,7 @@ export function PostsProvider({ children }: { children: ReactNode }) {
           p.id === id ? { ...p, likeCount: updatedLikes } : p
         )
       );
-    } catch (error) {
+    } catch (error: any) {
       setPosts((prev) =>
         prev.map((p) =>
           p.id === id
@@ -131,6 +145,11 @@ export function PostsProvider({ children }: { children: ReactNode }) {
             : p
         )
       );
+      if (error instanceof AuthError) {
+        await SecureStore.deleteItemAsync("authToken");
+        await SecureStore.deleteItemAsync("userRole");
+        router.replace("/");
+      }
       throw error;
     }
   };

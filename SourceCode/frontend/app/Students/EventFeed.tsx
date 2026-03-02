@@ -19,6 +19,8 @@ import { Spacing } from "../../lib/theme/spacing";
 import { useTabRefresh } from "../hooks/useTabRefresh";
 import { getEvents, EventRecord } from "../../lib/eventsApi";
 import { getStaticMapUrl } from "../../lib/staticMaps";
+import { useTickets, Ticket } from "../../contexts/TicketsContext";
+import { Alert } from "react-native";
 
 type EventItem = {
   id: string;
@@ -43,6 +45,7 @@ export default function EventFeed() {
   const [value, setValue] = useState(selectedDay);
   const [events, setEvents] = useState<EventRecord[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
+  const { tickets, addTicket } = useTickets();
   const [modalMapUrl, setModalMapUrl] = useState<string | null>(null);
   const [items, setItems] = useState([
     { label: "All", value: "All" },
@@ -272,12 +275,34 @@ export default function EventFeed() {
             </View>
 
             {selectedEvent && (
-              <TouchableOpacity
-                style={styles.openMapBtn}
-                onPress={() => Linking.openURL(mapUrl)}
-              >
-                <Text style={styles.openMapText}>Open in Maps</Text>
-              </TouchableOpacity>
+              <>
+                <TouchableOpacity
+                  style={styles.openMapBtn}
+                  onPress={() => Linking.openURL(mapUrl)}
+                >
+                  <Text style={styles.openMapText}>Open in Maps</Text>
+                </TouchableOpacity>
+
+                {/* booking button */}
+                <TouchableOpacity
+                  style={[styles.openMapBtn, { marginTop: 8, backgroundColor: colours.primary }]}
+                  onPress={async () => {
+                    if (!selectedEvent) return;
+                    const already = tickets.find((t) => t.id === selectedEvent.id);
+                    if (already) {
+                      Alert.alert("Already booked", "You already have a ticket for this event.");
+                      return;
+                    }
+                    // convert EventItem -> Ticket (same shape)
+                    const ticket: Ticket = { ...selectedEvent };
+                    await addTicket(ticket);
+                    Alert.alert("Ticket added", "Your ticket is now available in My Tickets.");
+                    setSelectedEvent(null);
+                  }}
+                >
+                  <Text style={[styles.openMapText, { color: "#fff" }]}>Book ticket</Text>
+                </TouchableOpacity>
+              </>
             )}
           </Pressable>
         </Pressable>

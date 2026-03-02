@@ -14,6 +14,7 @@ import * as SecureStore from "expo-secure-store";
 import { useRouter } from "expo-router";
 import { API_URL } from "../../lib/api";
 import { clearCurrentUserCache } from "../../lib/postsApi";
+import { clearSession } from "../../lib/auth";
 
 export default function LoginOrganisation() {
   const router = useRouter();
@@ -94,6 +95,7 @@ export default function LoginOrganisation() {
     try {
       const { token, user } = await loginRequest(email.trim(), password);
 
+      await clearSession();
       clearCurrentUserCache();
 
       if (user.role !== "ORGANISATION") {

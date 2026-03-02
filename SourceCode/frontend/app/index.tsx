@@ -22,6 +22,17 @@ export default function Index() {
         const token = await SecureStore.getItemAsync("authToken");
         if (!token) return;
 
+        // call a lightweight endpoint to confirm the token is still valid.
+        // the helper will clear session on failure so we don't need to
+        // duplicate that logic here.
+        try {
+          await import("../lib/postsApi").then((m) => m.getCurrentUser());
+        } catch (err) {
+          // if the call failed because the token expired the helper already
+          // cleared the session; bail out and show the login screen.
+          return;
+        }
+
         const role =
           (await SecureStore.getItemAsync("userRole")) ||
           (await SecureStore.getItemAsync("role"));
