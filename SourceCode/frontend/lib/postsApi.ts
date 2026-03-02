@@ -400,6 +400,49 @@ export async function deletePost(postId: string): Promise<void> {
 }
 
 /**
+ * Update a post (caption and/or image)
+ */
+export async function updatePost(
+  postId: string,
+  caption?: string,
+  imageUri?: string
+): Promise<Post> {
+  const token = await getAuthToken();
+  if (!token) {
+    throw new Error("Not authenticated");
+  }
+
+  const body: any = {};
+  if (caption) body.caption = caption;
+
+  if (imageUri) {
+    try {
+      const base64 = await FileSystem.readAsStringAsync(imageUri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      const mimeType = imageUri.toLowerCase().endsWith(".png")
+        ? "image/png"
+        : "image/jpeg";
+      body.image = base64;
+      body.imageMimeType = mimeType;
+    } catch {
+      throw new Error("Failed to read image file");
+    }
+  }
+
+  const data = await fetchWithAuth(`${API_URL}/posts/${postId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  return data.post;
+}
+
+/**
  * Update like count for a post
  */
 export async function updatePostLike(postId: string, delta: number): Promise<number> {

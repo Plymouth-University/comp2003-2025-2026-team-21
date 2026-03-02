@@ -457,22 +457,15 @@ router.delete("/me", authMiddleware, async (req: Request, res: Response) => {
     }
 
     if (decoded.role === "STUDENT") {
-      await prisma.$transaction([
-        prisma.posts.deleteMany({ where: { studentId: decoded.id } }),
-        prisma.student.delete({ where: { id: decoded.id } }),
-      ]);
-
-      return res.json({ message: "Account deleted" });
+      // Delete student and cascade delete all related posts via database constraints
+      await prisma.student.delete({ where: { id: decoded.id } });
+      return res.json({ message: "Account and all associated posts deleted successfully" });
     }
 
     if (decoded.role === "ORGANISATION") {
-      await prisma.$transaction([
-        prisma.posts.deleteMany({ where: { organisationId: decoded.id } }),
-        prisma.event.deleteMany({ where: { organiserId: decoded.id } }),
-        prisma.organisation.delete({ where: { id: decoded.id } }),
-      ]);
-
-      return res.json({ message: "Account deleted" });
+      // Delete organisation and cascade delete all related posts and events via database constraints
+      await prisma.organisation.delete({ where: { id: decoded.id } });
+      return res.json({ message: "Account and all associated posts and events deleted successfully" });
     }
 
     return res.status(403).json({ error: "Invalid role" });

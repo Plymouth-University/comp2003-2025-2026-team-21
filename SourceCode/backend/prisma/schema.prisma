@@ -45,7 +45,7 @@ model Event {
   organiserId        String
   eventImage         Bytes?
   eventImageMimeType String?
-  organiser          Organisation @relation(fields: [organiserId], references: [id])
+  organiser          Organisation @relation(fields: [organiserId], references: [id], onDelete: Cascade)
 }
 
 model Posts {
@@ -57,6 +57,6 @@ model Posts {
   likes         Int      @default(0)
   studentId     String?
   organisationId String?
-  student       Student?      @relation(fields: [studentId], references: [id])
-  organisation  Organisation? @relation(fields: [organisationId], references: [id])
+  student       Student?      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  organisation  Organisation? @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 }

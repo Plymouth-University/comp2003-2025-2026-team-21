@@ -6,6 +6,7 @@ import {
   getAllPosts, 
   getUserPosts, 
   deletePost,
+  updatePost,
   getPostById
 } from "../controllers/postsController";
 import { updatePostLikes } from "../controllers/postsController";
@@ -26,6 +27,9 @@ router.get("/user/:userId", getUserPosts);
 
 // Get a single post
 router.get("/:postId", getPostById);
+
+// Update a post
+router.patch("/:postId", requireAnyRole(["STUDENT", "ORGANISATION"]), updatePost);
 
 // Delete a post
 router.delete("/:postId", requireAnyRole(["STUDENT", "ORGANISATION"]), deletePost);
