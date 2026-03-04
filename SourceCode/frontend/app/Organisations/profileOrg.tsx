@@ -241,7 +241,13 @@ export default function ProfileOrg() {
       <View style={styles.headerRow}>
         <TouchableOpacity
           style={styles.backBtn}
-          onPress={() => router.back()}
+          onPress={() =>
+            router.replace(
+              currentUserRole === "ORGANISATION"
+                ? "/Organisations/socialOrg"
+                : "/Students/socialStudent"
+            )
+          }
           activeOpacity={0.85}
         >
           <Text style={styles.backIcon}>‹</Text>
