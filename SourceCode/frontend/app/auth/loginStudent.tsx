@@ -14,6 +14,7 @@ import * as SecureStore from "expo-secure-store";
 import { useRouter } from "expo-router";
 import { API_URL } from "../../lib/api";
 import { clearCurrentUserCache } from "../../lib/postsApi";
+import { clearSession } from "../../lib/auth";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -95,6 +96,8 @@ export default function LoginScreen() {
     try {
       const { token, user } = await loginRequest(email.trim(), password);
 
+      // wipe anything that might be left from a previous session
+      await clearSession();
       clearCurrentUserCache();
 
       console.log("Login successful, user data:", {

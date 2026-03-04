@@ -15,6 +15,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import * as ImagePicker from "expo-image-picker";
+import { clearSession } from "../../lib/auth";
 import {
   clearCurrentUserCache,
   deleteAccount,
@@ -101,17 +102,6 @@ export default function ProfileSettings() {
     }
   };
 
-  const clearSession = async () => {
-  await Promise.all([
-    SecureStore.deleteItemAsync("authToken"),
-    SecureStore.deleteItemAsync("userId"),
-    SecureStore.deleteItemAsync("username"),
-    SecureStore.deleteItemAsync("userEmail"),
-    SecureStore.deleteItemAsync("userPassword"),
-    SecureStore.deleteItemAsync("userRole"),
-  ]);
-  clearCurrentUserCache();
-};
 
   const handleLogout = async () => {
   Alert.alert(

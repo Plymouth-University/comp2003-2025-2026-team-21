@@ -15,6 +15,8 @@ import {
   Alert,
 } from "react-native";
 import FilterBar from "../components/FilterBar";
+import { useRouter } from "expo-router";
+import { AuthError, clearSession } from "../../lib/auth";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colours } from "../../lib/theme/colours";
 import { Spacing } from "../../lib/theme/spacing";
@@ -125,10 +127,22 @@ export default function EventsOrg() {
     });
   }, [editDate]);
 
+  const router = useRouter();
+
   const fetchEvents = useCallback(async () => {
-    const data = await getMyEvents();
-    setEvents(data);
-  }, []);
+    try {
+      const data = await getMyEvents();
+      setEvents(data);
+    } catch (err: any) {
+      // if auth has expired, clear and navigate back to login
+      if (err.name === "AuthError" ||
+          (err.message && err.message.toLowerCase().includes("token"))) {
+        await clearSession();
+        router.replace("/");
+      }
+      throw err; // rethrow so callers can still see failure
+    }
+  }, [router]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);

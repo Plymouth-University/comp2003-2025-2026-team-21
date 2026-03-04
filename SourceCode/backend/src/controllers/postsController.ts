@@ -307,6 +307,87 @@ export const deletePost = async (req: Request, res: Response) => {
 };
 
 /**
+ * UPDATE POST
+ * Updates a post's caption and/or image (only by the author)
+ */
+export const updatePost = async (req: Request, res: Response) => {
+  try {
+    // @ts-ignore - user is set by authMiddleware
+    const userId = req.user?.id;
+    const { postId } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const { caption, image, imageMimeType } = req.body;
+
+    if (!caption && !image) {
+      return res.status(400).json({ 
+        message: "At least one field (caption or image) must be provided" 
+      });
+    }
+
+    // Check if post exists and belongs to user
+    const post = await prisma.posts.findUnique({
+      where: { id: postId },
+    });
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    if (post.studentId !== userId && post.organisationId !== userId) {
+      return res.status(403).json({ message: "Not authorized to update this post" });
+    }
+
+    // Prepare update data
+    const updateData: any = {};
+    if (caption) updateData.caption = caption;
+    if (image && imageMimeType) {
+      updateData.image = Buffer.from(image, "base64");
+      updateData.imageMimeType = imageMimeType;
+    }
+
+    // Update the post
+    const updatedPost = await prisma.posts.update({
+      where: { id: postId },
+      data: updateData,
+      include: {
+        student: {
+          select: {
+            id: true,
+            username: true,
+            name: true,
+            profileImage: true,
+            profileImageMimeType: true,
+          },
+        },
+        organisation: {
+          select: {
+            id: true,
+            name: true,
+            profileImage: true,
+            profileImageMimeType: true,
+          },
+        },
+      },
+    });
+
+    const postWithBase64 = {
+      ...updatedPost,
+      image: updatedPost.image.toString("base64"),
+      User: buildPostUser(updatedPost),
+    };
+
+    return res.json({ message: "Post updated successfully", post: postWithBase64 });
+  } catch (error) {
+    console.error("Error updating post:", error);
+    return res.status(500).json({ message: "Server error", error });
+  }
+};
+
+/**
  * UPDATE POST LIKES
  * Increments or decrements a post's like count
  */

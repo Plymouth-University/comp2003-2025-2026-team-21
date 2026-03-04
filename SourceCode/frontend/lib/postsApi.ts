@@ -1,6 +1,70 @@
 import { API_URL } from "./api";
 import * as SecureStore from "expo-secure-store";
 import * as FileSystem from "expo-file-system/legacy";
+import { AuthError, clearSession } from "./auth";
+
+// helper used throughout this module so that every request can keep
+// consistent error handling and also detect when the token has expired.
+//
+// behaviour when a 401 with an "expired" message comes back is to
+// wipe local session data and throw an AuthError; callers can catch
+// that class and redirect the user to the login screen.
+async function handleResponse(response: Response) {
+  const text = await response.text();
+
+  if (!response.ok) {
+    let parsed: any | null = null;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      // ignore parse failures; we'll craft a generic message below
+    }
+
+    // extract message, ensuring it's always a string
+    let message: string;
+    if (typeof parsed?.error === "string") {
+      message = parsed.error;
+    } else if (typeof parsed?.message === "string") {
+      message = parsed.message;
+    } else if (parsed?.error) {
+      message = JSON.stringify(parsed.error);
+    } else if (parsed?.message) {
+      message = JSON.stringify(parsed.message);
+    } else {
+      message = `HTTP ${response.status}`;
+    }
+
+    // if we were told the token has expired, clear anything we hold
+    // and convert to a specific error subclass so callers can easily
+    // detect it without string matching.
+    if (
+      response.status === 401 &&
+      message.toLowerCase().includes("token")
+    ) {
+      await clearSession();
+      throw new AuthError(message);
+    }
+
+    throw new Error(message);
+  }
+
+  // success path: parse as JSON, again logging if the payload is
+  // malformed just to aid debugging during development.
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    console.error("Failed to parse JSON response", text);
+    throw new Error("Invalid response format from server");
+  }
+}
+
+async function fetchWithAuth(
+  url: string,
+  init: RequestInit
+): Promise<any> {
+  const res = await fetch(url, init);
+  return await handleResponse(res);
+}
 
 export interface Post {
   id: string;
@@ -113,21 +177,15 @@ function getMimeType(uri: string): string {
  */
 export async function createPost(caption: string, imageUri: string): Promise<Post> {
   const token = await getAuthToken();
-  
   if (!token) {
     throw new Error("Not authenticated");
   }
-
-  console.log("Creating post with API URL:", API_URL);
 
   // Convert image to base64
   const imageBase64 = await imageUriToBase64(imageUri);
   const imageMimeType = getMimeType(imageUri);
 
-  console.log("Image converted, size:", imageBase64.length, "bytes");
-  console.log("Sending POST request to:", `${API_URL}/posts`);
-
-  const response = await fetch(`${API_URL}/posts`, {
+  const data = await fetchWithAuth(`${API_URL}/posts`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -140,14 +198,6 @@ export async function createPost(caption: string, imageUri: string): Promise<Pos
     }),
   });
 
-  console.log("Response status:", response.status);
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || "Failed to create post");
-  }
-
-  const data = await response.json();
   return data.post;
 }
 
@@ -156,43 +206,19 @@ export async function createPost(caption: string, imageUri: string): Promise<Pos
  */
 export async function getAllPosts(): Promise<Post[]> {
   const token = await getAuthToken();
-  
   if (!token) {
     throw new Error("Not authenticated");
   }
 
   console.log("Fetching posts from:", `${API_URL}/posts`);
 
-  const response = await fetch(`${API_URL}/posts`, {
+  const data = await fetchWithAuth(`${API_URL}/posts`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
     },
   });
 
-  console.log("Get posts response status:", response.status);
-  const responseText = await response.text();
-  console.log("Response text (first 200 chars):", responseText.substring(0, 200));
-
-  if (!response.ok) {
-    console.error("Error fetching posts:", responseText);
-    let error;
-    try {
-      error = JSON.parse(responseText);
-    } catch {
-      throw new Error(`Failed to fetch posts: ${response.status} ${responseText.substring(0, 100)}`);
-    }
-    throw new Error(error.message || "Failed to fetch posts");
-  }
-
-  let data;
-  try {
-    data = JSON.parse(responseText);
-  } catch (parseError) {
-    console.error("Failed to parse response as JSON:", responseText);
-    throw new Error("Invalid response format from server");
-  }
-  
   return data.posts;
 }
 
@@ -201,24 +227,17 @@ export async function getAllPosts(): Promise<Post[]> {
  */
 export async function getUserPosts(userId: string): Promise<Post[]> {
   const token = await getAuthToken();
-  
   if (!token) {
     throw new Error("Not authenticated");
   }
 
-  const response = await fetch(`${API_URL}/posts/user/${userId}`, {
+  const data = await fetchWithAuth(`${API_URL}/posts/user/${userId}`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
     },
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || "Failed to fetch user posts");
-  }
-
-  const data = await response.json();
   return data.posts;
 }
 
@@ -227,24 +246,17 @@ export async function getUserPosts(userId: string): Promise<Post[]> {
  */
 export async function getPostById(postId: string): Promise<Post> {
   const token = await getAuthToken();
-
   if (!token) {
     throw new Error("Not authenticated");
   }
 
-  const response = await fetch(`${API_URL}/posts/${postId}`, {
+  const data = await fetchWithAuth(`${API_URL}/posts/${postId}`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
     },
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || "Failed to fetch post");
-  }
-
-  const data = await response.json();
   return data.post;
 }
 
@@ -253,7 +265,6 @@ export async function getPostById(postId: string): Promise<Post> {
  */
 export async function getCurrentUser(): Promise<UserProfile> {
   const token = await getAuthToken();
-  
   if (!token) {
     throw new Error("Not authenticated");
   }
@@ -262,19 +273,13 @@ export async function getCurrentUser(): Promise<UserProfile> {
     return currentUserCache;
   }
 
-  const response = await fetch(`${API_URL}/auth/me`, {
+  const data = await fetchWithAuth(`${API_URL}/auth/me`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
     },
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || "Failed to fetch user profile");
-  }
-
-  const data = await response.json();
   currentUserCache = data.user;
   return data.user;
 }
@@ -294,19 +299,13 @@ export async function getUserProfile(userId: string): Promise<PublicUserProfile>
     return cachedProfile;
   }
 
-  const response = await fetch(`${API_URL}/auth/user/${userId}`, {
+  const data = await fetchWithAuth(`${API_URL}/auth/user/${userId}`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
     },
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || error.message || "Failed to fetch user profile");
-  }
-
-  const data = await response.json();
   publicUserCache.set(userId, data.user);
   return data.user;
 }
@@ -316,7 +315,6 @@ export async function getUserProfile(userId: string): Promise<PublicUserProfile>
  */
 export async function updateProfileImage(imageUri: string): Promise<UserProfile> {
   const token = await getAuthToken();
-
   if (!token) {
     throw new Error("Not authenticated");
   }
@@ -324,7 +322,7 @@ export async function updateProfileImage(imageUri: string): Promise<UserProfile>
   const imageBase64 = await imageUriToBase64(imageUri);
   const imageMimeType = getMimeType(imageUri);
 
-  const response = await fetch(`${API_URL}/auth/profile-image`, {
+  const data = await fetchWithAuth(`${API_URL}/auth/profile-image`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -336,12 +334,6 @@ export async function updateProfileImage(imageUri: string): Promise<UserProfile>
     }),
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || error.message || "Failed to update profile image");
-  }
-
-  const data = await response.json();
   currentUserCache = data.user;
   return data.user;
 }
@@ -355,12 +347,11 @@ export async function updatePassword(
   confirmPassword: string
 ): Promise<void> {
   const token = await getAuthToken();
-
   if (!token) {
     throw new Error("Not authenticated");
   }
 
-  const response = await fetch(`${API_URL}/auth/password`, {
+  await fetchWithAuth(`${API_URL}/auth/password`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -372,11 +363,6 @@ export async function updatePassword(
       confirmPassword,
     }),
   });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || error.message || "Failed to update password");
-  }
 }
 
 /**
@@ -384,22 +370,16 @@ export async function updatePassword(
  */
 export async function deleteAccount(): Promise<void> {
   const token = await getAuthToken();
-
   if (!token) {
     throw new Error("Not authenticated");
   }
 
-  const response = await fetch(`${API_URL}/auth/me`, {
+  await fetchWithAuth(`${API_URL}/auth/me`, {
     method: "DELETE",
     headers: {
       Authorization: `Bearer ${token}`,
     },
   });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || error.message || "Failed to delete account");
-  }
 }
 
 /**
@@ -407,22 +387,59 @@ export async function deleteAccount(): Promise<void> {
  */
 export async function deletePost(postId: string): Promise<void> {
   const token = await getAuthToken();
-  
   if (!token) {
     throw new Error("Not authenticated");
   }
 
-  const response = await fetch(`${API_URL}/posts/${postId}`, {
+  await fetchWithAuth(`${API_URL}/posts/${postId}`, {
     method: "DELETE",
     headers: {
       Authorization: `Bearer ${token}`,
     },
   });
+}
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || "Failed to delete post");
+/**
+ * Update a post (caption and/or image)
+ */
+export async function updatePost(
+  postId: string,
+  caption?: string,
+  imageUri?: string
+): Promise<Post> {
+  const token = await getAuthToken();
+  if (!token) {
+    throw new Error("Not authenticated");
   }
+
+  const body: any = {};
+  if (caption) body.caption = caption;
+
+  if (imageUri) {
+    try {
+      const base64 = await FileSystem.readAsStringAsync(imageUri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      const mimeType = imageUri.toLowerCase().endsWith(".png")
+        ? "image/png"
+        : "image/jpeg";
+      body.image = base64;
+      body.imageMimeType = mimeType;
+    } catch {
+      throw new Error("Failed to read image file");
+    }
+  }
+
+  const data = await fetchWithAuth(`${API_URL}/posts/${postId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  return data.post;
 }
 
 /**
@@ -430,12 +447,11 @@ export async function deletePost(postId: string): Promise<void> {
  */
 export async function updatePostLike(postId: string, delta: number): Promise<number> {
   const token = await getAuthToken();
-
   if (!token) {
     throw new Error("Not authenticated");
   }
 
-  const response = await fetch(`${API_URL}/posts/${postId}/like`, {
+  const data = await fetchWithAuth(`${API_URL}/posts/${postId}/like`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -444,11 +460,5 @@ export async function updatePostLike(postId: string, delta: number): Promise<num
     body: JSON.stringify({ delta }),
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || "Failed to update like count");
-  }
-
-  const data = await response.json();
   return data.post.likes;
 }

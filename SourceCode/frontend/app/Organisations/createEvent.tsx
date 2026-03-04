@@ -18,6 +18,7 @@ import * as SecureStore from "expo-secure-store";
 import { colours } from "../../lib/theme/colours";
 import { createEvent } from "../../lib/eventsApi";
 import { getCurrentUser } from "../../lib/postsApi";
+import { AuthError, clearSession } from "../../lib/auth";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
 export default function AddEventOrg() {
@@ -168,6 +169,12 @@ export default function AddEventOrg() {
       setPrice("£");
       setImageUri(null);
     } catch (error: any) {
+      if (error instanceof AuthError) {
+        // token expired or other auth problem
+        await clearSession();
+        router.replace("/");
+        return;
+      }
       Alert.alert(
         "Error",
         error.message || "Failed to create event. Please try again."
