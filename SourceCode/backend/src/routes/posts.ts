@@ -7,9 +7,9 @@ import {
   getUserPosts, 
   deletePost,
   updatePost,
-  getPostById
+  getPostById,
+  updatePostLikes
 } from "../controllers/postsController";
-import { updatePostLikes } from "../controllers/postsController";
 
 const router = Router();
 

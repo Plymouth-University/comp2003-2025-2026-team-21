@@ -54,9 +54,22 @@ model Posts {
   image         Bytes
   imageMimeType String
   createdAt     DateTime @default(now())
-  likes         Int      @default(0)
+  likes         Like[]
   studentId     String?
   organisationId String?
   student       Student?      @relation(fields: [studentId], references: [id], onDelete: Cascade)
   organisation  Organisation? @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post      Posts     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId])
+  @@index([postId])
 }

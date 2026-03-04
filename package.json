@@ -10,9 +10,11 @@
     "dev:tunnel": "concurrently -n BACKEND,FRONTEND -c auto \"npm run backend\" \"npm run frontend:tunnel\""
   },
   "devDependencies": {
-    "concurrently": "^9.0.0"
+    "concurrently": "^9.0.0",
+    "prisma": "5.14.0"
   },
   "dependencies": {
-    "expo-haptics": "^55.0.8"
+    "expo-haptics": "^55.0.8",
+    "@prisma/client": "5.14.0"
   }
 }

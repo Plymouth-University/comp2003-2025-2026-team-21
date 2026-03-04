@@ -42,14 +42,13 @@ export function PostsProvider({ children }: { children: ReactNode }) {
       const token = await SecureStore.getItemAsync("authToken");
 
       if (!token) {
-        console.log("No auth token found, skipping post load");
         setLoading(false);
         return;
       }
 
       const dbPosts = await postsApi.getAllPosts();
 
-      const formattedPosts: Post[] = dbPosts.map((dbPost) => ({
+      const formattedPosts: Post[] = dbPosts.map((dbPost: any) => ({
         id: dbPost.id,
         userId: dbPost.User.id,
         username: dbPost.User.username,
@@ -60,20 +59,19 @@ export function PostsProvider({ children }: { children: ReactNode }) {
             : null,
         caption: dbPost.caption,
         imageUri: `data:${dbPost.imageMimeType};base64,${dbPost.image}`,
-        likeCount: dbPost.likes ?? 0,
-        liked: false,
+        likeCount: typeof dbPost.likeCount === "number" ? dbPost.likeCount : 0,
+        liked: Boolean(dbPost.likedByMe),
         timestamp: new Date(dbPost.createdAt).getTime(),
       }));
 
       setPosts(formattedPosts);
     } catch (error: any) {
-      console.error("Failed to load posts:", error);
-      // if the token has expired, take the user back to the login screen
       if (error instanceof AuthError) {
         await SecureStore.deleteItemAsync("authToken");
         await SecureStore.deleteItemAsync("userRole");
         router.replace("/");
       }
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -81,7 +79,7 @@ export function PostsProvider({ children }: { children: ReactNode }) {
 
   const addPost = async (caption: string, imageUri: string) => {
     try {
-      const dbPost = await postsApi.createPost(caption, imageUri);
+      const dbPost: any = await postsApi.createPost(caption, imageUri);
 
       const newPost: Post = {
         id: dbPost.id,
@@ -94,14 +92,13 @@ export function PostsProvider({ children }: { children: ReactNode }) {
             : null,
         caption: dbPost.caption,
         imageUri: `data:${dbPost.imageMimeType};base64,${dbPost.image}`,
-        likeCount: dbPost.likes ?? 0,
-        liked: false,
+        likeCount: typeof dbPost.likeCount === "number" ? dbPost.likeCount : 0,
+        liked: Boolean(dbPost.likedByMe),
         timestamp: new Date(dbPost.createdAt).getTime(),
       };
 
       setPosts((prev) => [newPost, ...prev]);
     } catch (error: any) {
-      console.error("Failed to create post:", error);
       if (error instanceof AuthError) {
         await SecureStore.deleteItemAsync("authToken");
         await SecureStore.deleteItemAsync("userRole");
@@ -112,39 +109,43 @@ export function PostsProvider({ children }: { children: ReactNode }) {
   };
 
   const toggleLike = async (id: string) => {
-    let delta = 0;
+    let optimisticLiked = false;
+    let optimisticLikeCount = 0;
 
     setPosts((prev) =>
       prev.map((p) => {
         if (p.id !== id) return p;
-        delta = p.liked ? -1 : 1;
-        return {
-          ...p,
-          liked: !p.liked,
-          likeCount: Math.max(0, p.likeCount + delta),
-        };
+        const nextLiked = !p.liked;
+        const nextCount = Math.max(0, p.likeCount + (nextLiked ? 1 : -1));
+        optimisticLiked = nextLiked;
+        optimisticLikeCount = nextCount;
+        return { ...p, liked: nextLiked, likeCount: nextCount };
       })
     );
 
     try {
-      const updatedLikes = await postsApi.updatePostLike(id, delta);
+      const result: any = await postsApi.togglePostLike(id);
+
+      const nextLiked =
+        typeof result?.likedByMe === "boolean" ? result.likedByMe : optimisticLiked;
+      const nextCount =
+        typeof result?.likeCount === "number" ? result.likeCount : optimisticLikeCount;
+
       setPosts((prev) =>
         prev.map((p) =>
-          p.id === id ? { ...p, likeCount: updatedLikes } : p
+          p.id === id ? { ...p, liked: nextLiked, likeCount: nextCount } : p
         )
       );
     } catch (error: any) {
       setPosts((prev) =>
-        prev.map((p) =>
-          p.id === id
-            ? {
-                ...p,
-                liked: !p.liked,
-                likeCount: Math.max(0, p.likeCount - delta),
-              }
-            : p
-        )
+        prev.map((p) => {
+          if (p.id !== id) return p;
+          const rolledBackLiked = !optimisticLiked;
+          const rolledBackCount = Math.max(0, optimisticLikeCount + (rolledBackLiked ? 1 : -1));
+          return { ...p, liked: rolledBackLiked, likeCount: rolledBackCount };
+        })
       );
+
       if (error instanceof AuthError) {
         await SecureStore.deleteItemAsync("authToken");
         await SecureStore.deleteItemAsync("userRole");

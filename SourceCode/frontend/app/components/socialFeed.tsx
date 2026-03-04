@@ -42,6 +42,8 @@ export default function SocialFeed({
     "STUDENT" | "ORGANISATION" | null
   >(null);
 
+  const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
+
   const lastTriggerRef = useRef<string | undefined>(undefined);
 
   const loadProfileAvatar = useCallback(async () => {
@@ -109,6 +111,18 @@ export default function SocialFeed({
     handleRefresh();
   }, [refreshTrigger, handleRefresh]);
 
+  useEffect(() => {
+    setLikeCounts((prev) => {
+      const next = { ...prev };
+      for (const p of posts) {
+        const serverCount = (p as any).likeCount;
+        if (typeof serverCount === "number") next[p.id] = serverCount;
+        else if (next[p.id] === undefined) next[p.id] = 0;
+      }
+      return next;
+    });
+  }, [posts]);
+
   const filteredPosts = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return posts;
@@ -134,6 +148,19 @@ export default function SocialFeed({
     }
 
     return "/Students/profileStudent";
+  };
+
+  const handleToggleLike = (postId: string) => {
+    const post = posts.find((p) => p.id === postId);
+    const wasLiked = Boolean(post?.liked);
+
+    setLikeCounts((prev) => {
+      const current = prev[postId] ?? 0;
+      const nextCount = Math.max(0, current + (wasLiked ? -1 : 1));
+      return { ...prev, [postId]: nextCount };
+    });
+
+    toggleLike(postId);
   };
 
   return (
@@ -222,13 +249,19 @@ export default function SocialFeed({
             <View style={styles.captionRow}>
               <TouchableOpacity
                 style={styles.likeBtn}
-                onPress={() => toggleLike(post.id)}
+                onPress={() => handleToggleLike(post.id)}
                 activeOpacity={0.8}
               >
                 <Text style={[styles.likeIcon, post.liked && styles.likeIconOn]}>
                   ♥
                 </Text>
               </TouchableOpacity>
+
+              <View style={styles.likeMeta}>
+                <Text style={styles.likeCount}>
+                  {(likeCounts[post.id] ?? (post as any).likeCount ?? 0).toString()}
+                </Text>
+              </View>
 
               <Text style={styles.captionText} numberOfLines={2}>
                 {post.caption}
@@ -370,6 +403,15 @@ const styles = StyleSheet.create({
   },
   likeIcon: { fontSize: 22, color: colours.textSecondary, fontWeight: "900" },
   likeIconOn: { color: colours.success },
+
+  likeMeta: { alignItems: "center", minWidth: 44 },
+likeCount: {
+  color: colours.textSecondary,
+  fontSize: 14,
+  fontWeight: "700",
+},
+likeLabel: { color: colours.textSecondary, fontSize: 11, fontWeight: "800", marginTop: -1 },
+
   captionText: { flex: 1, color: colours.textPrimary, fontSize: 18, fontWeight: "800" },
 
   emptyCard: {

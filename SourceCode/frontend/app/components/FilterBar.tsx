@@ -45,45 +45,44 @@ export default function FilterBar({
       </View>
 
       <View style={styles.dayWrap}>
-        <DropDownPicker
-          open={open}
-          value={selectedValue}
-          items={items}
-          setOpen={setOpen}
-          setValue={(val: any) => {
-            if (typeof val === "function") {
-              const resolved = val(selectedValue);
-              onSelectValue(resolved);
-            } else {
-              onSelectValue(val as string);
-            }
-          }}
-          setItems={setItems}
-          placeholder={placeholder}
-          style={styles.dropdown}
-          dropDownContainerStyle={styles.dropdownContainer}
-          textStyle={styles.dropdownText}
-          labelStyle={styles.dropdownLabel}
-          placeholderStyle={styles.dropdownPlaceholder}
-          listItemLabelStyle={styles.dropdownItemLabel}
-          listItemContainerStyle={styles.dropdownItemContainer}
-          ArrowUpIconComponent={() => (
-            <Ionicons name="chevron-up" size={18} color="rgba(255,255,255,0.7)" />
-          )}
-          ArrowDownIconComponent={() => (
-            <Ionicons
-              name="chevron-down"
-              size={18}
-              color="rgba(255,255,255,0.7)"
-            />
-          )}
-          TickIconComponent={() => (
-            <Ionicons name="checkmark" size={18} color={colours.success} />
-          )}
-          listMode="SCROLLVIEW"
-          zIndex={2000}
-          zIndexInverse={2000}
-        />
+       <DropDownPicker
+  open={open}
+  value={selectedValue}
+  items={items}
+  setOpen={setOpen}
+  setValue={(val: any) => {
+    if (typeof val === "function") {
+      const resolved = val(selectedValue);
+      onSelectValue(resolved);
+    } else {
+      onSelectValue(val as string);
+    }
+  }}
+  setItems={setItems}
+  placeholder={placeholder}
+  style={[styles.dropdown, open && styles.dropdownOpen]}
+  dropDownContainerStyle={[
+    styles.dropdownContainer,
+    open && styles.dropdownContainerOpen,
+  ]}
+  textStyle={styles.dropdownText}
+  labelStyle={styles.dropdownLabel}
+  placeholderStyle={styles.dropdownPlaceholder}
+  listItemLabelStyle={styles.dropdownItemLabel}
+  listItemContainerStyle={styles.dropdownItemContainer}
+  ArrowUpIconComponent={() => (
+    <Ionicons name="chevron-up" size={18} color={colours.textSecondary} />
+  )}
+  ArrowDownIconComponent={() => (
+    <Ionicons name="chevron-down" size={18} color={colours.textSecondary} />
+  )}
+  TickIconComponent={() => (
+    <Ionicons name="checkmark" size={18} color={colours.secondary} />
+  )}
+  listMode="SCROLLVIEW"
+  zIndex={1000}
+  zIndexInverse={1000}
+/>
       </View>
     </View>
   );
@@ -132,23 +131,36 @@ const styles = StyleSheet.create({
     zIndex: 4000,
   },
 
-  dropdown: {
-    height: 44,
-    borderRadius: 999,
-    backgroundColor: colours.glass,
+   dropdown: {
+    backgroundColor: "rgba(255,255,255,0.10)",
     borderWidth: 1,
-    borderColor: colours.border,
-    paddingHorizontal: 12,
+    borderColor: "rgba(255,255,255,0.06)",
+    borderRadius: 28,
+  },
+
+  dropdownOpen: {
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
   },
 
   dropdownContainer: {
     borderWidth: 1,
     borderColor: colours.border,
-    borderRadius: 16,
+    borderRadius: 10,
     backgroundColor: colours.surfaceElevated,
-    marginTop: 8,
-    overflow: "hidden",
+    elevation: 8,
+    zIndex: 2000,
+    position: "absolute",
+    top: "100%",
+    left: 0,
+    right: 0,
   },
+
+  dropdownContainerOpen: {
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+  },
+
 
   dropdownText: {
     color: colours.textPrimary,

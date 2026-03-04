@@ -130,10 +130,10 @@ export const createPost = async (req: Request, res: Response) => {
  */
 export const getAllPosts = async (req: Request, res: Response) => {
   try {
+    const userId = (req as any).user?.id as string | undefined;
+
     const posts = await prisma.posts.findMany({
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: { createdAt: "desc" },
       include: {
         student: {
           select: {
@@ -152,14 +152,27 @@ export const getAllPosts = async (req: Request, res: Response) => {
             profileImageMimeType: true,
           },
         },
+        _count: {
+          select: { likes: true },
+        },
+        likes: userId
+          ? {
+              where: { userId },
+              select: { id: true },
+              take: 1,
+            }
+          : false,
       },
     });
 
-    // Convert image buffers to base64
-    const postsWithBase64 = posts.map((post) => ({
+    const postsWithBase64 = posts.map((post: any) => ({
       ...post,
       image: post.image.toString("base64"),
       User: buildPostUser(post),
+      likeCount: post._count?.likes ?? 0,
+      likedByMe: Array.isArray(post.likes) && post.likes.length > 0,
+      likes: undefined,
+      _count: undefined,
     }));
 
     return res.json({ posts: postsWithBase64 });
@@ -394,29 +407,52 @@ export const updatePost = async (req: Request, res: Response) => {
 export const updatePostLikes = async (req: Request, res: Response) => {
   try {
     const { postId } = req.params;
-    const { delta } = req.body;
+    const userId = (req as any).user?.id as string | undefined;
 
-    if (!postId || typeof delta !== "number") {
-      return res.status(400).json({ message: "Missing postId or delta" });
+    if (!postId || !userId) {
+      return res.status(400).json({ message: "Missing postId or user" });
     }
 
-    const post = await prisma.posts.findUnique({ where: { id: postId } });
-
-    if (!post) {
-      return res.status(404).json({ message: "Post not found" });
-    }
-
-    const nextLikes = Math.max(0, post.likes + delta);
-
-    const updatedPost = await prisma.posts.update({
-      where: { id: postId },
-      data: { likes: nextLikes },
-      select: { id: true, likes: true },
+    const existing = await prisma.like.findUnique({
+      where: {
+        postId_userId: {
+          postId,
+          userId,
+        },
+      },
+      select: { id: true },
     });
 
-    return res.json({ post: updatedPost });
+    let likedByMe = false;
+
+    if (existing) {
+      await prisma.like.delete({
+        where: { id: existing.id },
+      });
+      likedByMe = false;
+    } else {
+      await prisma.like.create({
+        data: {
+          postId,
+          userId,
+        },
+      });
+      likedByMe = true;
+    }
+
+    const likeCount = await prisma.like.count({
+      where: { postId },
+    });
+
+    return res.json({
+      post: {
+        id: postId,
+        likeCount,
+        likedByMe,
+      },
+    });
   } catch (error) {
     console.error("Error updating post likes:", error);
-    return res.status(500).json({ message: "Server error", error });
+    return res.status(500).json({ message: "Server error" });
   }
 };

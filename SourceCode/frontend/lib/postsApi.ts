@@ -69,12 +69,15 @@ async function fetchWithAuth(
 export interface Post {
   id: string;
   caption: string;
-  image: string; // base64
+  image: string;
   imageMimeType: string;
   createdAt: string;
   studentId?: string | null;
   organisationId?: string | null;
-  likes: number;
+
+  likeCount: number;
+  likedByMe: boolean;
+
   User: {
     id: string;
     username: string;
@@ -445,7 +448,9 @@ export async function updatePost(
 /**
  * Update like count for a post
  */
-export async function updatePostLike(postId: string, delta: number): Promise<number> {
+export async function togglePostLike(
+  postId: string
+): Promise<{ likeCount: number; likedByMe: boolean }> {
   const token = await getAuthToken();
   if (!token) {
     throw new Error("Not authenticated");
@@ -457,8 +462,12 @@ export async function updatePostLike(postId: string, delta: number): Promise<num
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ delta }),
   });
 
-  return data.post.likes;
+  const post = data.post ?? data;
+
+  return {
+    likeCount: post.likeCount ?? post.likes ?? 0,
+    likedByMe: Boolean(post.likedByMe),
+  };
 }
