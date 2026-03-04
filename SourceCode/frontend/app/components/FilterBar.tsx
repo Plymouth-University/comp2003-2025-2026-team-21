@@ -1,5 +1,5 @@
 import React from "react";
-import { View, TextInput, StyleSheet } from "react-native";
+import { View, TextInput, StyleSheet, Text } from "react-native";
 import DropDownPicker from "react-native-dropdown-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { colours } from "../../lib/theme/colours";
@@ -27,30 +27,24 @@ export default function FilterBar({
   setOpen,
   items,
   setItems,
-  placeholder = "Select a day",
+  placeholder = "Day",
 }: FilterBarProps) {
   return (
-    <View style={styles.filterBar} accessible accessibilityRole="search">
-      <View style={styles.searchWrapper}>
-        <Ionicons
-          name="search"
-          size={18}
-          color={colours.textSecondary}
-          style={styles.searchIcon}
-        />
+    <View style={styles.topBar} accessibilityRole="search">
+      <View style={styles.searchWrap}>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search events..."
-          placeholderTextColor={colours.textMuted}
+          placeholder="Search"
+          placeholderTextColor="rgba(255,255,255,0.55)"
           value={searchQuery}
           onChangeText={setSearchQuery}
-          accessibilityLabel="Search events"
-          accessibilityHint="Enter text to search events"
+          autoCapitalize="none"
           returnKeyType="search"
         />
+        <Text style={styles.searchIcon}>⌕</Text>
       </View>
 
-      <View style={styles.dropdownWrapper}>
+      <View style={styles.dayWrap}>
         <DropDownPicker
           open={open}
           value={selectedValue}
@@ -74,17 +68,21 @@ export default function FilterBar({
           listItemLabelStyle={styles.dropdownItemLabel}
           listItemContainerStyle={styles.dropdownItemContainer}
           ArrowUpIconComponent={() => (
-            <Ionicons name="chevron-up" size={18} color={colours.textSecondary} />
+            <Ionicons name="chevron-up" size={18} color="rgba(255,255,255,0.7)" />
           )}
           ArrowDownIconComponent={() => (
-            <Ionicons name="chevron-down" size={18} color={colours.textSecondary} />
+            <Ionicons
+              name="chevron-down"
+              size={18}
+              color="rgba(255,255,255,0.7)"
+            />
           )}
           TickIconComponent={() => (
-            <Ionicons name="checkmark" size={18} color={colours.secondary} />
+            <Ionicons name="checkmark" size={18} color={colours.success} />
           )}
           listMode="SCROLLVIEW"
-          zIndex={1000}
-          zIndexInverse={1000}
+          zIndex={2000}
+          zIndexInverse={2000}
         />
       </View>
     </View>
@@ -92,86 +90,88 @@ export default function FilterBar({
 }
 
 const styles = StyleSheet.create({
-  filterBar: {
+  topBar: {
     flexDirection: "row",
     alignItems: "center",
+    paddingHorizontal: 16,
+    gap: 12,
+    paddingTop: 8,
+    paddingBottom: 8,
+    zIndex: 3000,
+  },
+
+  searchWrap: {
+    flex: 1,
+    height: 44,
+    borderRadius: 999,
     backgroundColor: colours.glass,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginHorizontal: 16,
-    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    justifyContent: "space-between",
     borderWidth: 1,
     borderColor: colours.border,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
-    shadowRadius: 6,
-    elevation: 4,
-    position: "relative",
-    zIndex: 3000,
-    overflow: "visible",
   },
-  searchWrapper: {
-    flex: 1,
-    position: "relative",
-    justifyContent: "center",
-  },
-  searchIcon: {
-    position: "absolute",
-    left: 12,
-    zIndex: 10,
-  },
+
   searchInput: {
-    backgroundColor: "rgba(255,255,255,0.10)",
-    paddingLeft: 36,
-    paddingRight: 12,
-    borderRadius: 10,
-    height: 44,
+    flex: 1,
     color: colours.textPrimary,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    fontSize: 15,
+    paddingRight: 10,
   },
-  dropdownWrapper: {
-    width: 150,
-    marginLeft: 10,
-    zIndex: 1000,
-    elevation: 6,
-    overflow: "visible",
-    position: "relative",
+
+  searchIcon: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 18,
+    marginLeft: 8,
   },
+
+  dayWrap: {
+    width: 132,
+    height: 44,
+    zIndex: 4000,
+  },
+
   dropdown: {
-    backgroundColor: "rgba(255,255,255,0.10)",
+    height: 44,
+    borderRadius: 999,
+    backgroundColor: colours.glass,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
-    borderRadius: 10,
+    borderColor: colours.border,
+    paddingHorizontal: 12,
   },
+
   dropdownContainer: {
     borderWidth: 1,
     borderColor: colours.border,
-    borderRadius: 10,
+    borderRadius: 16,
     backgroundColor: colours.surfaceElevated,
-    elevation: 8,
-    zIndex: 2000,
-    position: "absolute",
-    top: "100%",
-    left: 0,
-    right: 0,
+    marginTop: 8,
+    overflow: "hidden",
   },
 
   dropdownText: {
     color: colours.textPrimary,
-    fontWeight: "600",
+    fontWeight: "800",
+    fontSize: 13,
   },
+
   dropdownLabel: {
     color: colours.textPrimary,
   },
+
   dropdownPlaceholder: {
-    color: colours.textMuted,
+    color: "rgba(255,255,255,0.55)",
+    fontWeight: "800",
+    fontSize: 13,
   },
+
   dropdownItemContainer: {
     backgroundColor: "transparent",
   },
+
   dropdownItemLabel: {
     color: colours.textPrimary,
+    fontWeight: "700",
   },
 });

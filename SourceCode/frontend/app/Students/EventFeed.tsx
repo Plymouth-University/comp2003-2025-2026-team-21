@@ -125,7 +125,7 @@ export default function EventFeed() {
           mapLocation: event.organiser.location ?? event.location,
         };
       }),
-    [events]
+    [dayNames, events]
   );
 
   const visibleEvents =

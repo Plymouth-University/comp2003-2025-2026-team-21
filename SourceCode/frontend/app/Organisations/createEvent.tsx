@@ -25,7 +25,6 @@ export default function AddEventOrg() {
   const insets = useSafeAreaInsets();
 
   const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
 
   const [title, setTitle] = useState("");
   const [eventDate, setEventDate] = useState<Date | null>(null);
@@ -177,30 +176,7 @@ export default function AddEventOrg() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      <View style={styles.topBar}>
-        <View style={styles.searchWrap}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search"
-            placeholderTextColor={colours.textMuted}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
-          />
-          <Text style={styles.searchIcon}>⌕</Text>
-        </View>
-
-        <TouchableOpacity
-          style={styles.profileBtn}
-          onPress={() => router.push("/Organisations/profileOrg")}
-          activeOpacity={0.85}
-        >
-          <View style={styles.profileCircle} />
-          <Text style={styles.profileLabel}>Profile</Text>
-        </TouchableOpacity>
-      </View>
-
+      <SafeAreaView style={styles.container} edges={["top"]}>
       <ScrollView
         style={styles.scrollArea}
         contentContainerStyle={{ paddingTop: 12, paddingBottom: bottomPad }}
@@ -209,6 +185,11 @@ export default function AddEventOrg() {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       >
+
+        <Text style={styles.pageTitle}>Create Event</Text>
+<Text style={styles.pageSubtitle}>
+  Fill in the details below to publish a new event.
+</Text>
         <View style={styles.card}>
           <TouchableOpacity
             style={styles.imageCard}
@@ -572,4 +553,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "900",
   },
+  pageTitle: {
+  fontSize: 26,
+  fontWeight: "900",
+  color: colours.textPrimary,
+  marginBottom: 4,
+  marginTop: 6,
+},
+
+pageSubtitle: {
+  fontSize: 14,
+  color: colours.textMuted,
+  marginBottom: 16,
+},
 });

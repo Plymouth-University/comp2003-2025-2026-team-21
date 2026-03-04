@@ -9,12 +9,12 @@ interface Props {
 }
 
 const TABS = [
-  { key: "myEvents", label: "My Events" },
-  { key: "createEvent", label: "Create Event" },
+  { key: "events", label: "Events" },
+  { key: "tickets", label: "Tickets" },
   { key: "social", label: "Social" },
 ];
 
-export default function BottomNavOrg({ activeTab, onTabPress }: Props) {
+export default function BottomNavStudent({ activeTab, onTabPress }: Props) {
   const scalesRef = useRef<Record<string, Animated.Value>>({});
 
   const scales = useMemo(() => {
@@ -69,7 +69,9 @@ export default function BottomNavOrg({ activeTab, onTabPress }: Props) {
             ]}
           >
             <Animated.View style={{ transform: [{ scale: scales[tab.key] }] }}>
-              <Text style={[styles.navButtonText, isActive && styles.navButtonTextActive]}>
+              <Text
+                style={[styles.navButtonText, isActive && styles.navButtonTextActive]}
+              >
                 {tab.label}
               </Text>
             </Animated.View>

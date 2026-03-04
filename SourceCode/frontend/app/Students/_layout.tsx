@@ -1,20 +1,17 @@
-import React from "react";
-import { Stack, usePathname, useRouter } from "expo-router";
-import { View } from "react-native";
-import BottomNav from "../components/BottomNav";
+import React, { useMemo } from "react";
+import { Tabs, usePathname, useRouter } from "expo-router";
+import BottomNavStudent from "../components/BottomNavStudent";
 
 export default function StudentsLayout() {
   const pathname = usePathname();
   const router = useRouter();
 
-  const activeTab =
-    pathname.includes("EventFeed")
-      ? "events"
-      : pathname.includes("myTickets")
-      ? "tickets"
-      : pathname.includes("socialStudent")
-      ? "social"
-      : "events";
+  const activeTab = useMemo(() => {
+    if (pathname.includes("EventFeed")) return "events";
+    if (pathname.includes("myTickets")) return "tickets";
+    if (pathname.includes("socialStudent")) return "social";
+    return "events";
+  }, [pathname]);
 
   const routeForTab = (tab: string) => {
     if (tab === "events") return "/Students/EventFeed";
@@ -24,19 +21,28 @@ export default function StudentsLayout() {
   };
 
   return (
-    <View style={{ flex: 1 }}>
-      <Stack screenOptions={{ headerShown: false }} />
-      <BottomNav
-        activeTab={activeTab}
-        onTabPress={(tab) => {
-          if (tab === activeTab) {
-            router.setParams({ _r: Date.now().toString() });
-            return;
-          }
-
-          router.replace(routeForTab(tab) as any);
-        }}
-      />
-    </View>
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+      }}
+      tabBar={() => (
+        <BottomNavStudent
+          activeTab={activeTab}
+          onTabPress={(tab) => {
+            if (tab === activeTab) {
+              router.setParams({ _r: Date.now().toString() });
+              return;
+            }
+            router.replace(routeForTab(tab) as any);
+          }}
+        />
+      )}
+    >
+      <Tabs.Screen name="EventFeed" options={{ href: null }} />
+      <Tabs.Screen name="myTickets" options={{ href: null }} />
+      <Tabs.Screen name="socialStudent" options={{ href: null }} />
+      <Tabs.Screen name="profileStudent" options={{ href: null }} />
+      <Tabs.Screen name="profileOrg" options={{ href: null }} />
+    </Tabs>
   );
 }

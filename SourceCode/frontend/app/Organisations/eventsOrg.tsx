@@ -397,7 +397,7 @@ export default function EventsOrg() {
       <Modal
         visible={Boolean(selectedEvent)}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setSelectedEvent(null)}
       >
         <Pressable
@@ -671,20 +671,23 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
 
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.55)",
-    padding: 18,
-    justifyContent: "center",
-  },
+modalBackdrop: {
+  flex: 1,
+  backgroundColor: "rgba(0, 0, 0, 0.4)",
+  justifyContent: "center",
+  alignItems: "center",
+},
 
-  modalCard: {
-    backgroundColor: colours.surface,
-    borderRadius: 18,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: colours.border,
-  },
+modalCard: {
+  width: "90%",
+  maxWidth: 500,
+  backgroundColor: colours.surface,
+  borderRadius: 24,
+  padding: 20,
+  borderWidth: 1,
+  borderColor: colours.border,
+  maxHeight: "85%",
+},
 
   modalHeader: {
     flexDirection: "row",
