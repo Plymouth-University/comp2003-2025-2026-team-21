@@ -11,7 +11,7 @@ import {
   Image as RNImage,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { usePosts } from "../../contexts/PostsContext";
 import { colours } from "../../lib/theme/colours";
 import * as SecureStore from "expo-secure-store";
@@ -32,8 +32,12 @@ export default function SocialFeed({
   const insets = useSafeAreaInsets();
   const { posts, toggleLike, refreshPosts } = usePosts();
 
+  const params = useLocalSearchParams<{ q?: string }>();
+
   const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState<string>(
+    () => (params.q ? String(params.q) : "")
+  );
   const [resolvedProfilePath, setResolvedProfilePath] = useState<string>(
     profilePath || "/Students/profileStudent"
   );
@@ -118,6 +122,45 @@ export default function SocialFeed({
         p.caption.toLowerCase().includes(q)
     );
   }, [posts, searchQuery]);
+
+  const renderCaptionParts = useCallback(
+    (caption: string) => {
+      const regex = /#[\w-]+/g;
+      const parts: Array<{ text: string; isTag: boolean }> = [];
+      let lastIndex = 0;
+      let m: RegExpExecArray | null;
+
+      while ((m = regex.exec(caption)) !== null) {
+        const idx = m.index;
+        if (idx > lastIndex) {
+          parts.push({ text: caption.slice(lastIndex, idx), isTag: false });
+        }
+        parts.push({ text: m[0], isTag: true });
+        lastIndex = idx + m[0].length;
+      }
+
+      if (lastIndex < caption.length) {
+        parts.push({ text: caption.slice(lastIndex), isTag: false });
+      }
+
+      return parts.map((p, i) =>
+        p.isTag ? (
+          <Text
+            key={i}
+            style={styles.hashtag}
+            onPress={() => setSearchQuery(p.text)}
+          >
+            {p.text}
+          </Text>
+        ) : (
+          <Text key={i} style={styles.captionTextInline}>
+            {p.text}
+          </Text>
+        )
+      );
+    },
+    [setSearchQuery]
+  );
 
   const bottomPad = 110 + Math.max(insets.bottom, 0);
   const buildProfilePath = (post: (typeof posts)[number]) => {
@@ -231,7 +274,7 @@ export default function SocialFeed({
               </TouchableOpacity>
 
               <Text style={styles.captionText} numberOfLines={2}>
-                {post.caption}
+                {renderCaptionParts(post.caption)}
               </Text>
             </View>
           </View>
@@ -371,6 +414,8 @@ const styles = StyleSheet.create({
   likeIcon: { fontSize: 22, color: colours.textSecondary, fontWeight: "900" },
   likeIconOn: { color: colours.success },
   captionText: { flex: 1, color: colours.textPrimary, fontSize: 18, fontWeight: "800" },
+  captionTextInline: { color: colours.textPrimary, fontSize: 18, fontWeight: "800" },
+  hashtag: { color: colours.secondary, fontSize: 18, fontWeight: "800" },
 
   emptyCard: {
     backgroundColor: colours.glass,

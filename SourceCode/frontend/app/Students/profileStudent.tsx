@@ -122,7 +122,7 @@ export default function ProfileStudent() {
       <View style={styles.headerRow}>
         <TouchableOpacity
           style={styles.backBtn}
-          onPress={() => router.back()}
+          onPress={() => router.replace("/Students/socialStudent")}
           activeOpacity={0.85}
         >
           <Text style={styles.backIcon}>‹</Text>

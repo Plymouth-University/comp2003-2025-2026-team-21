@@ -149,6 +149,44 @@ export default function PostDetail() {
 
   const bottomPad = 24 + Math.max(insets.bottom, 0);
 
+  const renderCaptionParts = (caption: string) => {
+    const regex = /#[\w-]+/g;
+    const parts: Array<{ text: string; isTag: boolean }> = [];
+    let lastIndex = 0;
+    let m: RegExpExecArray | null;
+
+    while ((m = regex.exec(caption)) !== null) {
+      const idx = m.index;
+      if (idx > lastIndex) {
+        parts.push({ text: caption.slice(lastIndex, idx), isTag: false });
+      }
+      parts.push({ text: m[0], isTag: true });
+      lastIndex = idx + m[0].length;
+    }
+
+    if (lastIndex < caption.length) {
+      parts.push({ text: caption.slice(lastIndex), isTag: false });
+    }
+
+    return parts.map((p, i) =>
+      p.isTag ? (
+        <Text
+          key={i}
+          style={styles.hashtag}
+          onPress={() =>
+            router.push({ pathname: "/Students/socialStudent", params: { q: p.text } } as any)
+          }
+        >
+          {p.text}
+        </Text>
+      ) : (
+        <Text key={i} style={styles.captionTextInline}>
+          {p.text}
+        </Text>
+      )
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.headerRow}>
@@ -237,7 +275,7 @@ export default function PostDetail() {
 
             <View style={styles.metaRow}>
               <Text style={styles.likesText}>{post.likes} likes</Text>
-              <Text style={styles.captionText}>{post.caption}</Text>
+              <Text style={styles.captionText}>{renderCaptionParts(post.caption)}</Text>
             </View>
           </View>
         ) : null}
@@ -447,6 +485,8 @@ const styles = StyleSheet.create({
   metaRow: { gap: 8 },
   likesText: { color: colours.textSecondary, fontSize: 16, fontWeight: "800" },
   captionText: { color: colours.textPrimary, fontSize: 18, fontWeight: "800" },
+  captionTextInline: { color: colours.textPrimary, fontSize: 18, fontWeight: "800" },
+  hashtag: { color: colours.secondary, fontSize: 18, fontWeight: "800" },
 
   // Edit modal styles
   editModalContainer: {

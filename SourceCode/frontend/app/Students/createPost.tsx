@@ -78,8 +78,15 @@ export default function CreatePost() {
 
     try {
       await addPost(caption, imageUri);
+      // clear form after successful post
+      setCaption("");
+      setImageUri(null);
+
       Alert.alert("Success", "Post created successfully!", [
-        { text: "OK", onPress: () => router.back() },
+        {
+          text: "OK",
+          onPress: () => router.replace("/Students/socialStudent"),
+        },
       ]);
     } catch (error: any) {
       Alert.alert(
@@ -94,7 +101,7 @@ export default function CreatePost() {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backBtn}
-          onPress={() => router.back()}
+          onPress={() => router.replace("/Students/socialStudent")}
           activeOpacity={0.8}
         >
           <Text style={styles.backIcon}>←</Text>
