@@ -19,6 +19,7 @@ import { Spacing } from "../../lib/theme/spacing";
 import { useTabRefresh } from "../hooks/useTabRefresh";
 import { getEvents, EventRecord } from "../../lib/eventsApi";
 import { getStaticMapUrl } from "../../lib/staticMaps";
+import { purchaseTicket } from "../../lib/ticketsApi";
 import { useTickets, Ticket } from "../../contexts/TicketsContext";
 import { Alert } from "react-native";
 
@@ -293,11 +294,17 @@ export default function EventFeed() {
                       Alert.alert("Already booked", "You already have a ticket for this event.");
                       return;
                     }
-                    // convert EventItem -> Ticket (same shape)
-                    const ticket: Ticket = { ...selectedEvent };
-                    await addTicket(ticket);
-                    Alert.alert("Ticket added", "Your ticket is now available in My Tickets.");
-                    setSelectedEvent(null);
+                    try {
+                      // call backend to create the ticket
+                      await purchaseTicket(selectedEvent.id);
+                      // add to local cache for immediate UI update
+                      const ticket: Ticket = { ...selectedEvent };
+                      await addTicket(ticket);
+                      Alert.alert("Ticket added", "Your ticket is now available in My Tickets.");
+                      setSelectedEvent(null);
+                    } catch (error: any) {
+                      Alert.alert("Error", error.message || "Failed to book ticket.");
+                    }
                   }}
                 >
                   <Text style={[styles.openMapText, { color: "#fff" }]}>Book ticket</Text>

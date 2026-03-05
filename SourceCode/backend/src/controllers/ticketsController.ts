@@ -9,7 +9,7 @@ export const createTicket = async (req: Request, res: Response) => {
     // @ts-ignore
     const role = req.user?.role;
 
-    if (!userId || role !== "student") {
+    if (!userId || role?.toUpperCase() !== "STUDENT") {
       return res.status(403).json({ message: "Forbidden" });
     }
 
@@ -75,7 +75,7 @@ export const getMyTickets = async (req: Request, res: Response) => {
     // @ts-ignore
     const role = req.user?.role;
 
-    if (!userId || role !== "student") {
+    if (!userId || role?.toUpperCase() !== "STUDENT") {
       return res.status(403).json({ message: "Forbidden" });
     }
 
@@ -122,7 +122,7 @@ export const deleteTicket = async (req: Request, res: Response) => {
     // @ts-ignore
     const role = req.user?.role;
 
-    if (!userId || role !== "student") {
+    if (!userId || role?.toUpperCase() !== "STUDENT") {
       return res.status(403).json({ message: "Forbidden" });
     }
 
