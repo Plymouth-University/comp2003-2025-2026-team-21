@@ -305,6 +305,11 @@ export const deleteEvent = async (req: Request, res: Response) => {
       return res.status(403).json({ message: "Forbidden" });
     }
 
+    // ensure any related tickets are gone before removing the event
+    // (DB cascade should handle it but we delete explicitly to keep behaviour
+    // consistent even if the foreign key isn't configured correctly).
+    await prisma.ticket.deleteMany({ where: { eventId: id } });
+
     await prisma.event.delete({ where: { id } });
     return res.json({ message: "Event deleted" });
   } catch (error) {

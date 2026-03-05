@@ -41,11 +41,19 @@ export default function MyTickets() {
 
   const { tickets } = useTickets();
 
+  const { refreshTickets } = useTickets();
+
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    await new Promise((res) => setTimeout(res, 800));
+    try {
+      await refreshTickets();
+    } catch (err) {
+      console.warn("failed to refresh from server", err);
+      // fall back to a small delay so the pull-to-refresh animation isn't abrupt
+      await new Promise((res) => setTimeout(res, 800));
+    }
     setRefreshing(false);
-  }, []);
+  }, [refreshTickets]);
 
   const bottomPad = 100 + Math.max(insets.bottom, 0);
 

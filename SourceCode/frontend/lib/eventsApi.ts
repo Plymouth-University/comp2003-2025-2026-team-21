@@ -39,10 +39,14 @@ async function handleResponse(response: Response) {
     throw new Error(message);
   }
 
+  if (text.trim() === "") {
+    return null;
+  }
+
   try {
     return JSON.parse(text);
   } catch (err) {
-    console.error("Failed to parse JSON response", text);
+    console.error("Failed to parse JSON response (possibly server bug):", text);
     throw new Error("Invalid response format from server");
   }
 }

@@ -48,12 +48,19 @@ async function handleResponse(response: Response) {
     throw new Error(message);
   }
 
-  // success path: parse as JSON, again logging if the payload is
-  // malformed just to aid debugging during development.
+  // success path: attempt to parse as JSON.  some endpoints (eg. deletes)
+  // sometimes return an empty body/204, which would cause JSON.parse('') to
+  // throw; in that case just return null so callers can decide what to do.
+  if (text.trim() === "") {
+    return null;
+  }
+
   try {
     return JSON.parse(text);
   } catch (err) {
-    console.error("Failed to parse JSON response", text);
+    // log the URL so we know which request misbehaved (fetchWithAuth doesn't
+    // currently forward the URL, so we include a simple hint via the stack).
+    console.error("Failed to parse JSON response (possibly server bug):", text);
     throw new Error("Invalid response format from server");
   }
 }

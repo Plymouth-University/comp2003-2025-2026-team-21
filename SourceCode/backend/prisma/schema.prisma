@@ -17,6 +17,7 @@ model Student {
   profileImage         Bytes?
   profileImageMimeType String?
   posts                Posts[]
+  tickets              Ticket[]
 }
 
 model Organisation {
@@ -46,6 +47,7 @@ model Event {
   eventImage         Bytes?
   eventImageMimeType String?
   organiser          Organisation @relation(fields: [organiserId], references: [id], onDelete: Cascade)
+  tickets            Ticket[]
 }
 
 model Posts {
@@ -72,4 +74,18 @@ model Like {
   @@unique([postId, userId])
   @@index([userId])
   @@index([postId])
+}
+
+model Ticket {
+  id         String   @id @default(uuid())
+  eventId    String
+  studentId  String
+  createdAt  DateTime @default(now())
+
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, eventId])
+  @@index([eventId])
+  @@index([studentId])
 }

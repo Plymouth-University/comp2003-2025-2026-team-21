@@ -23,6 +23,7 @@ import { Spacing } from "../../lib/theme/spacing";
 import { useTabRefresh } from "../hooks/useTabRefresh";
 import { getStaticMapUrl } from "../../lib/staticMaps";
 import { getMyEvents, EventRecord, updateEvent, deleteEvent } from "../../lib/eventsApi";
+import { useTickets } from "../../contexts/TicketsContext";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as ImagePicker from "expo-image-picker";
 
@@ -311,6 +312,8 @@ export default function EventsOrg() {
     }
   };
 
+  const { removeTicketsForEvent } = useTickets();
+
   const handleDelete = () => {
     if (!selectedEvent) {
       return;
@@ -324,6 +327,9 @@ export default function EventsOrg() {
         onPress: async () => {
           try {
             await deleteEvent(selectedEvent.id);
+            // clear any cached ticket for this event (useful when the same
+            // device has been used to purchase a ticket previously)
+            await removeTicketsForEvent(selectedEvent.id);
             await fetchEvents();
             setSelectedEvent(null);
           } catch (error: any) {

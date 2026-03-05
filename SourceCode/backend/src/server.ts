@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import authRoutes from "./routes/auth";
 import postsRoutes from "./routes/posts";
+import ticketsRoutes from "./routes/tickets";
 import eventsRoutes from "./routes/events";
 
 /**
@@ -42,6 +43,7 @@ app.use("/auth", authRoutes);
  *  DELETE /posts/:postId
  */
 app.use("/posts", postsRoutes);
+app.use("/tickets", ticketsRoutes);
 
 /**
  * Mount events routes under /events
