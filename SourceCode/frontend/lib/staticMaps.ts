@@ -119,19 +119,40 @@ export async function getStaticMapUrl(
     return null;
   }
 
-  const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
+  // prefer Google Static Maps; most of the project just needs a plain image
+  // with a pin and a key is easiest to obtain.  if you set
+  // EXPO_PUBLIC_GOOGLE_MAPS_API_KEY the helper will always return a google URL.
+  // Mapbox support is now entirely optional and only used if there is no google
+  // key configured.
+  const googleKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+  if (googleKey) {
+    const centre = `${coords.lat},${coords.lon}`;
+    const marker = `color:red%7C${coords.lat},${coords.lon}`;
+    const url =
+      `https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(
+        centre
+      )}` +
+      `&zoom=${zoom}&size=${width}x${height}&scale=2` +
+      `&markers=${marker}&key=${googleKey}`;
 
-  if (!token) {
-    return null;
+    urlCache.set(cacheKey, url);
+    return url;
   }
 
-  const marker = `pin-s+e02424(${coords.lon},${coords.lat})`;
-  const url =
-    "https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/" +
-    `${marker}/${coords.lon},${coords.lat},${zoom},0/` +
-    `${width}x${height}@2x` +
-    `?access_token=${token}`;
+  // if no google key, fall back to Mapbox token if available (legacy behaviour)
+  const mapboxToken = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
+  if (mapboxToken) {
+    const marker = `pin-s+e02424(${coords.lon},${coords.lat})`;
+    const url =
+      "https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/" +
+      `${marker}/${coords.lon},${coords.lat},${zoom},0/` +
+      `${width}x${height}@2x` +
+      `?access_token=${mapboxToken}`;
 
-  urlCache.set(cacheKey, url);
-  return url;
+    urlCache.set(cacheKey, url);
+    return url;
+  }
+
+  // nothing configured; give up and let callers fall back on the event image
+  return null;
 }
