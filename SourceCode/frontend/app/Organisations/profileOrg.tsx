@@ -45,7 +45,7 @@ export default function ProfileOrg() {
   const [modalMapUrl, setModalMapUrl] = useState<string | null>(null);
 
   const totalLikes = useMemo(
-    () => orgPosts.reduce((sum, post) => sum + (post.likes ?? 0), 0),
+    () => orgPosts.reduce((sum, post) => sum + (post.likeCount ?? 0), 0),
     [orgPosts]
   );
 

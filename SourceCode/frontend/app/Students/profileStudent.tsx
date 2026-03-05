@@ -31,7 +31,7 @@ export default function ProfileStudent() {
   const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
 
   const totalLikes = useMemo(
-    () => userPosts.reduce((sum, post) => sum + (post.likes ?? 0), 0),
+    () => userPosts.reduce((sum, post) => sum + (post.likeCount ?? 0), 0),
     [userPosts]
   );
 

@@ -215,14 +215,20 @@ export const getUserPosts = async (req: Request, res: Response) => {
             profileImageMimeType: true,
           },
         },
+        _count: {
+          select: { likes: true },
+        },
       },
     });
 
     // Convert image buffers to base64
-    const postsWithBase64 = posts.map((post) => ({
+    const postsWithBase64 = posts.map((post: any) => ({
       ...post,
       image: post.image.toString("base64"),
       User: buildPostUser(post),
+      likeCount: post._count?.likes ?? 0,
+      likes: undefined,
+      _count: undefined,
     }));
 
     return res.json({ posts: postsWithBase64 });
