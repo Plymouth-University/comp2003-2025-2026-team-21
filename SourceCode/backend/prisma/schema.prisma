@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Student {
+  id                   String   @id @default(uuid())
+  email                String   @unique
+  username             String   @unique
+  password             String
+  name                 String?
+  createdAt            DateTime @default(now())
+  profileImage         Bytes?
+  profileImageMimeType String?
+  posts                Posts[]
+  tickets              Ticket[]
+}
+
+model Organisation {
+  id                   String   @id @default(uuid())
+  email                String   @unique
+  password             String
+  name                 String
+  location             String
+  createdAt            DateTime @default(now())
+  profileImage         Bytes?
+  profileImageMimeType String?
+  evidenceImage        Bytes?
+  evidenceImageMimeType String?
+  events               Event[]
+  posts                Posts[]
+}
+
+model Event {
+  id                 String   @id @default(uuid())
+  title              String
+  description        String
+  date               DateTime
+  location           String
+  price              String
+  createdAt          DateTime @default(now())
+  organiserId        String
+  eventImage         Bytes?
+  eventImageMimeType String?
+  organiser          Organisation @relation(fields: [organiserId], references: [id], onDelete: Cascade)
+  tickets            Ticket[]
+}
+
+model Posts {
+  id            String   @id @default(uuid())
+  caption       String
+  image         Bytes
+  imageMimeType String
+  createdAt     DateTime @default(now())
+  likes         Like[]
+  studentId     String?
+  organisationId String?
+  student       Student?      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  organisation  Organisation? @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post      Posts     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId])
+  @@index([postId])
+}
+
+model Ticket {
+  id         String   @id @default(uuid())
+  eventId    String
+  studentId  String
+  createdAt  DateTime @default(now())
+
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, eventId])
+  @@index([eventId])
+  @@index([studentId])
+}
