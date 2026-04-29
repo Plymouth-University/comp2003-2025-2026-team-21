@@ -1,0 +1,95 @@
+a51e564,Dylan Bennett,2026-04-29,feat: auth redesign, role colour themes, UI polish, circular pfp, like button on post detail
+28e4498,Dylan Bennett,2026-04-28,fix: ticket capacity enforcement, push token registration, edit event capacity
+ba89674,Dylan Bennett,2026-04-24,App finalised and ready for deployment
+8726a87,Dylan Bennett,2026-04-24,chore: deploy to Railway, native maps, calendar picker, QR fix
+f6df24a,Dylan Bennett,2026-04-24,fix: add missing ticket columns
+9df1354,Dylan Bennett,2026-04-24,fix: add missing Follow, Comment, PushToken, Notification tables
+9579c84,Dylan Bennett,2026-04-24,fix: add missing notificationsEnabled and capacity migrations
+110c0b2,Dylan Bennett,2026-04-24,fix: add missing event category migration
+b6129a7,Dylan Bennett,2026-04-24,chore: move migrations to start script
+53de4e6,Dylan Bennett,2026-04-24,chore: run migrations automatically on deploy
+e868681,Dylan Bennett,2026-04-19,Fix push notifications, Apple Pay, and EAS build
+1f98784,Dylan Bennett,2026-04-19,Add design spec for push notifications and Apple Pay
+18ae25a,Dylan Bennett,2026-04-08,Add comprehensive unit tests and project configuration
+39591ce,Dylan Bennett,2026-03-16,Improve UI with themed shadows, proper icons, empty states, and cleaner bottom nav
+3f8fdef,Dylan Bennett,2026-03-16,Add event ticket capacity feature
+ebecce3,Dylan Bennett,2026-03-16,Add Stripe PaymentSheet integration for paid events
+3768de4,Dylan Bennett,2026-03-16,Add follow system and push notifications infrastructure
+be85054,Dylan Bennett,2026-03-16,Enhance UI with Ionicons, avatar glow effects, and styled stat cards
+19979c3,Dylan Bennett,2026-03-16,Redesign tickets tab with Upcoming/All/Past filters, add used/expired ticket handling, improve QR code UX, and reformat FilterBar layout
+8e6031d,Dylan Bennett,2026-03-16,Add event-specific ticket validation
+b87107d,Dylan Bennett,2026-03-16,Add QR code scanner for organisations to validate tickets
+d140f35,Dylan Bennett,2026-03-16,Add comments system for posts
+faf2cc6,Dylan Bennett,2026-03-16,Update progress.md with recent changes
+f10ae17,Dylan Bennett,2026-03-16,Remove unnecessary .md files
+200f51b,Dylan Bennett,2026-03-16,Merge frontend into main repo (remove submodule)
+2e2ec7c,Dylan Bennett,2026-03-16,Add event categories, hashtag search, and ticket counts
+36271de,Dylan Bennett,2026-03-16,Resolve merge conflicts by preferring local changes
+e2f12dc,Dylan Bennett,2026-03-16,Initial commit
+5a5960f,Dylan Bennett,2026-03-16,overhauled styling, made sure just about everything is working as intended
+833374e,Dylan Bennett,2026-03-09,app.json
+a9cd423,Dylan Bennett,2026-03-09,added splash screen test
+87ad025,bobbymilo12,2026-03-05,FIxed tickets dissapearing when refreshing and not appearing in the database
+503b407,bobbymilo12,2026-03-05,Fixed total likes calculation in profile pages.
+c58008c,bobbymilo12,2026-03-05,Fixed issue with maps not displaying in event card.
+212e3ff,bobbymilo12,2026-03-05,Made sure tickets are deleted when an event is delted
+b902083,Dylan Bennett,2026-03-04,Merge branch 'main' of https://github.com/Plymouth-University/comp2003-2025-2026-team-21
+1fb3a27,Dylan Bennett,2026-03-04,fixed issue where user likes a post, logs out, logs back in and can infinitely like posts
+f319d1f,bobbymilo12,2026-03-04,Initial designs on canva
+9f3a79b,bobbymilo12,2026-03-04,Trello screenshots
+3bd2ebc,bobbymilo12,2026-03-04,FIxed back button issues, and hashtag searching.
+da573ba,Dylan Bennett,2026-03-04,Merge branch 'main' of https://github.com/Plymouth-University/comp2003-2025-2026-team-21
+43ad50d,Dylan Bennett,2026-03-04,Improved styling, made overall theme a bit more cohesive and cleaner
+9938de9,bobbymilo12,2026-03-02,Added edit and delete functionality to posts
+756498a,bobbymilo12,2026-03-02,Added booking function, created ticket card and generates QR code for each ticket
+f944bfe,bobbymilo12,2026-02-10,App remembers last account logged in and skips login.
+08bcbad,bobbymilo12,2026-02-10,Added 2 tabs in the organisations profile page to show all posts and events made by that organisation.
+4afafaa,bobbymilo12,2026-02-10,Added icon next to organisations names to distinguish them from students
+92ee1fc,bobbymilo12,2026-02-10,Fixed bug of going back to login page after creating an event, stays on page now.
+02ef34f,bobbymilo12,2026-02-10,Delete button backend for student and organisation profiles
+dfb9b08,bobbymilo12,2026-02-10,Fixed issue with organization profile image and allowed organization posts, tweaked profile pages and authentication flows for both students and organizations, and updated the database schema accordingly.
+44b55e9,bobbymilo12,2026-02-10,Added edit and delete functionality for events for organisations
+4ba2bcb,bobbymilo12,2026-02-10,Added embedded map into event cards as pop ups
+b214c43,Dylan Bennett,2026-02-10,added bits to test properly on iphone?
+9655a83,bobbymilo12,2026-02-10,Event creation backend working
+e7c391f,Dylan Bennett,2026-02-10,tidied up project structure more, got organisation frontend sorted and fixed some navigation issues/refresh logic
+2014762,Dylan Bennett,2026-02-09,added some improved styling and such
+7c65901,Dylan Bennett,2026-02-06,organised project structure, added separate student/org login pages
+4cb146b,bobbymilo12,2026-02-06,Added more details to student social feed and profiles
+0137900,Dylan Bennett,2026-02-06,changed some styling, got a consistent theme going on
+3de9f09,bobbymilo12,2026-02-02,Username now appears in profile header, only if user has posted (WIP)
+26e36f9,bobbymilo12,2026-02-02,Post display in user profile, logout button
+72388c4,bobbymilo12,2026-02-02,updated README
+9e92791,bobbymilo12,2026-02-02,updated README
+fb33003,bobbymilo12,2026-02-02,updated README
+8c223f6,bobbymilo12,2026-02-02,Updated README.md and included setup instructions.
+7e88a3b,bobbymilo12,2026-02-02,Backend image handing and frontend social feed display
+0ce0798,bobbymilo12,2026-02-02,Added username to account creation
+286c1b7,bobbymilo12,2026-02-02,Backend image upload and createPost page.
+def4dd1,Dylan Bennett,2026-02-02,Merge pull request #5 from Plymouth-University/chore/repo-detox
+0eb9630,Dylan Bennett,2026-02-02,Added profile/profile settings pages for students, where they can view and edit their info.
+0c33291,Dylan Bennett,2026-02-02,Merge pull request #3 from Plymouth-University/chore/repo-detox
+cc9063c,Dylan Bennett,2026-02-02,added base social page structure
+6096791,Dylan Bennett,2026-01-16,registration works now
+6233da9,bobbymilo12,2026-01-16,Backend Comments
+f7eb697,Dylan Bennett,2026-01-16,Merge pull request #2 from Plymouth-University/chore/repo-detox
+512c968,Dylan Bennett,2026-01-16,logging in actually works again
+c11da13,Dylan Bennett,2026-01-16,now easy to run straight from new codespace, auto generates/fills .env files for front/backend
+50fe887,Dylan Bennett,2026-01-08,added .env.examples
+8b53273,Dylan Bennett,2026-01-08,don't need to manually set API url anymore
+5b09a66,Dylan Bennett,2026-01-08,chore: repo detox (structure, ignores, env examples, scripts)
+53882c8,bobbymilo12,2025-11-29,Co-authored-by: Dylan Bennett <DB14823@users.noreply.github.com>
+67f5e31,bobbymilo12,2025-11-25,Y
+0398df2,bobbymilo12,2025-11-25,Removed ERROR debug
+98994e9,bobbymilo12,2025-11-25,Added auth API backend
+41f9f6e,Dylan Bennett,2025-11-24,Set up database (Kam)
+682d577,bobbymilo12,2025-11-24,Dev container setup
+47de104,Dylan Bennett,2025-11-17,commit
+1372968,Dylan Bennett,2025-11-17,added basic social feed UI, fixed some styling/position issues
+38660d9,Dylan Bennett,2025-11-17,altered some designs, added refresh functionality
+a1c69ad,Dylan Bennett,2025-11-11,Merge pull request #1 from Plymouth-University/dylan-frontend
+a59abf4,dylanbennett,2025-11-11,Added login and event view ui
+f968a06,dylanbennett,2025-11-10,Added frontend folder
+147bf75,github-classroom[bot],2025-11-03,add online IDE url; add deadline
+2de9345,kenobicjj,2025-10-02,Update hello.txt
+f119c17,github-classroom[bot],2025-09-24,Initial commit
