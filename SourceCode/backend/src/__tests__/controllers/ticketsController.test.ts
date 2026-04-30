@@ -20,6 +20,20 @@ import { verifyPaymentIntent } from "../../utils/stripe";
 const db = prisma as jest.Mocked<typeof prisma>;
 const mockVerify = verifyPaymentIntent as jest.Mock;
 
+// tx mirrors the same mocked prisma methods so $transaction callbacks work
+const tx = {
+  event: { findUnique: jest.fn() },
+  ticket: { findUnique: jest.fn(), create: jest.fn() },
+};
+
+// $transaction is not auto-mocked, so we define it manually
+(db as any).$transaction = jest.fn((fn: any) => fn(tx));
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  (db as any).$transaction = jest.fn((fn: any) => fn(tx));
+});
+
 const STUDENT = { id: "stu1", email: "s@test.com", role: "STUDENT" as const };
 const ORG = { id: "org1", email: "o@test.com", role: "ORGANISATION" as const };
 
@@ -85,9 +99,9 @@ describe("createTicket", () => {
   });
 
   it("returns 400 when the event is fully booked", async () => {
-    (db.event.findUnique as jest.Mock).mockResolvedValue(
-      makeEvent({ capacity: 10, _count: { tickets: 10 } }),
-    );
+    const fullyBooked = makeEvent({ capacity: 10, _count: { tickets: 10 } });
+    (db.event.findUnique as jest.Mock).mockResolvedValue(fullyBooked);
+    (tx.event.findUnique as jest.Mock).mockResolvedValue(fullyBooked);
 
     const res = mockResponse();
     await createTicket(
@@ -160,7 +174,8 @@ describe("createTicket", () => {
 
   it("returns 409 when a ticket already exists for this student+event", async () => {
     (db.event.findUnique as jest.Mock).mockResolvedValue(makeEvent());
-    (db.ticket.findUnique as jest.Mock).mockResolvedValue(makeTicket());
+    (tx.event.findUnique as jest.Mock).mockResolvedValue(makeEvent());
+    (tx.ticket.findUnique as jest.Mock).mockResolvedValue(makeTicket());
 
     const res = mockResponse();
     await createTicket(
@@ -174,8 +189,9 @@ describe("createTicket", () => {
 
   it("creates a free-event ticket and returns 201 with event details", async () => {
     (db.event.findUnique as jest.Mock).mockResolvedValue(makeEvent());
-    (db.ticket.findUnique as jest.Mock).mockResolvedValue(null);
-    (db.ticket.create as jest.Mock).mockResolvedValue(makeTicket());
+    (tx.event.findUnique as jest.Mock).mockResolvedValue(makeEvent());
+    (tx.ticket.findUnique as jest.Mock).mockResolvedValue(null);
+    (tx.ticket.create as jest.Mock).mockResolvedValue(makeTicket());
     (db.organisation.findUnique as jest.Mock).mockResolvedValue({
       id: ORG.id,
       name: "Test Org",
@@ -188,7 +204,7 @@ describe("createTicket", () => {
       res,
     );
 
-    expect(db.ticket.create).toHaveBeenCalled();
+    expect(tx.ticket.create).toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(201);
     const { ticket } = (res.json as jest.Mock).mock.calls[0][0];
     expect(ticket.title).toBe("Summer Ball");
@@ -199,9 +215,12 @@ describe("createTicket", () => {
     (db.event.findUnique as jest.Mock).mockResolvedValue(
       makeEvent({ price: 10 }),
     );
-    (db.ticket.findUnique as jest.Mock).mockResolvedValue(null);
+    (tx.event.findUnique as jest.Mock).mockResolvedValue(
+      makeEvent({ price: 10 }),
+    );
+    (tx.ticket.findUnique as jest.Mock).mockResolvedValue(null);
     mockVerify.mockResolvedValue({ succeeded: true, eventId: "evt1" });
-    (db.ticket.create as jest.Mock).mockResolvedValue(
+    (tx.ticket.create as jest.Mock).mockResolvedValue(
       makeTicket({ paymentIntentId: "pi_ok" }),
     );
     (db.organisation.findUnique as jest.Mock).mockResolvedValue({
@@ -219,7 +238,7 @@ describe("createTicket", () => {
       res,
     );
 
-    const createArg = (db.ticket.create as jest.Mock).mock.calls[0][0];
+    const createArg = (tx.ticket.create as jest.Mock).mock.calls[0][0];
     expect(createArg.data.paymentIntentId).toBe("pi_ok");
   });
 });
