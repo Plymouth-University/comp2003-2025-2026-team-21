@@ -152,6 +152,7 @@ export default function ProfileSettings() {
         text: "Logout",
         style: "destructive",
         onPress: async () => {
+          await unregisterForPushNotifications();
           await clearSession();
           router.dismissAll();
           router.replace("/");
@@ -216,7 +217,7 @@ export default function ProfileSettings() {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backBtn}
-          onPress={() => router.back()}
+          onPress={() => router.replace("/Students/profileStudent" as any)}
           activeOpacity={0.8}
         >
           <Text style={styles.backIcon}>‹</Text>

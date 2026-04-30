@@ -520,71 +520,76 @@ export default function PostDetail() {
         onRequestClose={() => !editLoading && setShowEditModal(false)}
       >
         <SafeAreaView style={styles.editModalContainer} edges={["bottom"]}>
-          <View style={styles.editModalHeader}>
-            <TouchableOpacity
-              onPress={() => !editLoading && setShowEditModal(false)}
-              disabled={editLoading}
-              style={styles.editModalButton}
-            >
-              <Text style={styles.editModalClose}>Cancel</Text>
-            </TouchableOpacity>
-            <Text style={styles.editModalTitle}>Edit Post</Text>
-            <TouchableOpacity
-              onPress={handleSaveEdit}
-              disabled={editLoading}
-              style={styles.editModalButton}
-            >
-              <Text style={styles.editModalSave}>Save</Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.editModalContent}>
-            {editImage ? (
-              <View style={styles.editImagePreview}>
-                <Image
-                  source={{ uri: editImage }}
-                  style={styles.editImagePreviewImg}
-                />
-                <TouchableOpacity
-                  style={styles.editImageRemove}
-                  onPress={() => setEditImage(null)}
-                  disabled={editLoading}
-                >
-                  <Text style={styles.editImageRemoveText}>Change Image</Text>
-                </TouchableOpacity>
-              </View>
-            ) : post ? (
-              <View style={styles.editImagePreview}>
-                <Image
-                  source={{ uri: post.imageUrl }}
-                  style={styles.editImagePreviewImg}
-                />
-                <TouchableOpacity
-                  style={styles.editImageRemove}
-                  onPress={pickImage}
-                  disabled={editLoading}
-                >
-                  <Text style={styles.editImageRemoveText}>Change Image</Text>
-                </TouchableOpacity>
-              </View>
-            ) : null}
-
-            <TextInput
-              style={styles.editCaptionInput}
-              placeholder="Edit your caption..."
-              placeholderTextColor={colours.textMuted}
-              value={editCaption}
-              onChangeText={setEditCaption}
-              multiline
-              editable={!editLoading}
-            />
-          </ScrollView>
-
-          {editLoading && (
-            <View style={styles.editLoadingOverlay}>
-              <ActivityIndicator size="large" color={colours.primary} />
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={{ flex: 1 }}
+          >
+            <View style={styles.editModalHeader}>
+              <TouchableOpacity
+                onPress={() => !editLoading && setShowEditModal(false)}
+                disabled={editLoading}
+                style={styles.editModalButton}
+              >
+                <Text style={styles.editModalClose}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={styles.editModalTitle}>Edit Post</Text>
+              <TouchableOpacity
+                onPress={handleSaveEdit}
+                disabled={editLoading}
+                style={styles.editModalButton}
+              >
+                <Text style={styles.editModalSave}>Save</Text>
+              </TouchableOpacity>
             </View>
-          )}
+
+            <ScrollView style={styles.editModalContent}>
+              {editImage ? (
+                <View style={styles.editImagePreview}>
+                  <Image
+                    source={{ uri: editImage }}
+                    style={styles.editImagePreviewImg}
+                  />
+                  <TouchableOpacity
+                    style={styles.editImageRemove}
+                    onPress={() => setEditImage(null)}
+                    disabled={editLoading}
+                  >
+                    <Text style={styles.editImageRemoveText}>Change Image</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : post ? (
+                <View style={styles.editImagePreview}>
+                  <Image
+                    source={{ uri: post.imageUrl }}
+                    style={styles.editImagePreviewImg}
+                  />
+                  <TouchableOpacity
+                    style={styles.editImageRemove}
+                    onPress={pickImage}
+                    disabled={editLoading}
+                  >
+                    <Text style={styles.editImageRemoveText}>Change Image</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+
+              <TextInput
+                style={styles.editCaptionInput}
+                placeholder="Edit your caption..."
+                placeholderTextColor={colours.textMuted}
+                value={editCaption}
+                onChangeText={setEditCaption}
+                multiline
+                editable={!editLoading}
+              />
+            </ScrollView>
+
+            {editLoading && (
+              <View style={styles.editLoadingOverlay}>
+                <ActivityIndicator size="large" color={colours.primary} />
+              </View>
+            )}
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>

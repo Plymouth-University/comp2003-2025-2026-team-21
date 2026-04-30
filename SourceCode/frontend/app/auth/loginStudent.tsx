@@ -53,7 +53,6 @@ export default function LoginScreen() {
 
   const loginRequest = async (email: string, password: string) => {
     const url = `${API_URL}/auth/login-student`;
-    console.log("Calling backend:", url);
 
     const response = await fetch(url, {
       method: "POST",
@@ -62,13 +61,11 @@ export default function LoginScreen() {
     });
 
     const raw = await response.text();
-    console.log("Raw response:", raw.substring(0, 500));
 
     let data: any = null;
     if (raw) {
       try {
         data = JSON.parse(raw);
-        console.log("Parsed response user data:", data.user);
       } catch {
         throw new Error(`Non-JSON response (HTTP ${response.status})`);
       }
@@ -135,12 +132,6 @@ export default function LoginScreen() {
       await clearSession();
       clearCurrentUserCache();
 
-      console.log("Login successful, user data:", {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-      });
-
       await SecureStore.setItemAsync("authToken", token);
       await SecureStore.setItemAsync("userId", user.id);
       await SecureStore.setItemAsync("userRole", user.role);
@@ -148,9 +139,6 @@ export default function LoginScreen() {
 
       if (user.username) {
         await SecureStore.setItemAsync("username", user.username);
-        console.log("Stored username in SecureStore:", user.username);
-      } else {
-        console.warn("Warning: No username in login response");
       }
 
       if (rememberMe) {

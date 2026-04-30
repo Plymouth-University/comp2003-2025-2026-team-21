@@ -152,6 +152,7 @@ export default function ProfileOrgSettings() {
         text: "Logout",
         style: "destructive",
         onPress: async () => {
+          await unregisterForPushNotifications();
           await clearSession();
           router.dismissAll();
           router.replace("/");
@@ -216,7 +217,7 @@ export default function ProfileOrgSettings() {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backBtn}
-          onPress={() => router.back()}
+          onPress={() => router.replace("/Organisations/profileOrg" as any)}
           activeOpacity={0.8}
         >
           <Text style={styles.backIcon}>‹</Text>

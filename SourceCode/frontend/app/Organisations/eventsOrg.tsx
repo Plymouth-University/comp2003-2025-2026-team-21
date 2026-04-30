@@ -10,7 +10,7 @@ import {
   Pressable,
   TouchableOpacity,
   Linking,
-  Image,
+  ActivityIndicator,
   TextInput,
   Alert,
   KeyboardAvoidingView,
@@ -27,7 +27,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { colours } from "../../lib/theme/colours";
 import { Spacing } from "../../lib/theme/spacing";
 import { useTabRefresh } from "../hooks/useTabRefresh";
-import { getStaticMapUrl } from "../../lib/staticMaps";
+import MapView, { Marker } from "react-native-maps";
+import { geocodeLocation } from "../../lib/staticMaps";
 import {
   getMyEvents,
   EventRecord,
@@ -63,7 +64,10 @@ export default function EventsOrg() {
   const [value, setValue] = useState(selectedDay);
   const [events, setEvents] = useState<EventRecord[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
-  const [modalMapUrl, setModalMapUrl] = useState<string | null>(null);
+  const [mapCoords, setMapCoords] = useState<{
+    lat: number;
+    lon: number;
+  } | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
@@ -265,9 +269,7 @@ export default function EventsOrg() {
   }, [eventItems, selectedDay, searchQuery]);
 
   const mapUrl = selectedEvent
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-        selectedEvent.mapLocation,
-      )}`
+    ? `maps://?q=${encodeURIComponent(selectedEvent.mapLocation)}`
     : "";
 
   useEffect(() => {
@@ -292,13 +294,13 @@ export default function EventsOrg() {
     let cancelled = false;
 
     if (!selectedEvent) {
-      setModalMapUrl(null);
+      setMapCoords(null);
       return;
     }
 
-    getStaticMapUrl(selectedEvent.mapLocation).then((url) => {
+    geocodeLocation(selectedEvent.mapLocation).then((coords) => {
       if (!cancelled) {
-        setModalMapUrl(url);
+        setMapCoords(coords);
       }
     });
 
@@ -685,16 +687,34 @@ export default function EventsOrg() {
                         ) : null}
 
                         <View style={styles.mapFrame}>
-                          {modalMapUrl ? (
-                            <Image
-                              source={{ uri: modalMapUrl }}
+                          {mapCoords ? (
+                            <MapView
                               style={styles.mapWebView}
-                            />
+                              initialRegion={{
+                                latitude: mapCoords.lat,
+                                longitude: mapCoords.lon,
+                                latitudeDelta: 0.01,
+                                longitudeDelta: 0.01,
+                              }}
+                              scrollEnabled={false}
+                              zoomEnabled={false}
+                              pitchEnabled={false}
+                              rotateEnabled={false}
+                            >
+                              <Marker
+                                coordinate={{
+                                  latitude: mapCoords.lat,
+                                  longitude: mapCoords.lon,
+                                }}
+                                title={selectedEvent?.location}
+                              />
+                            </MapView>
                           ) : (
                             <View style={styles.mapFallback}>
-                              <Text style={styles.eventImageText}>
-                                Loading map...
-                              </Text>
+                              <ActivityIndicator
+                                size="small"
+                                color={colours.textMuted}
+                              />
                             </View>
                           )}
                         </View>

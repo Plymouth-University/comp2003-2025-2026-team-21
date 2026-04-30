@@ -1,16 +1,17 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
   StyleSheet,
   Pressable,
   Modal,
-  TextInput,
   ActivityIndicator,
-  Alert,
 } from "react-native";
-import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { CameraView, useCameraPermissions } from "expo-camera";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 import { colours } from "../../lib/theme/colours";
 import { Ionicons } from "@expo/vector-icons";
@@ -24,16 +25,16 @@ type ScanResult = {
 
 export default function ScanTickets() {
   const insets = useSafeAreaInsets();
-  const { eventId, eventTitle } = useLocalSearchParams<{ eventId?: string; eventTitle?: string }>();
+  const { eventId, eventTitle } = useLocalSearchParams<{
+    eventId?: string;
+    eventTitle?: string;
+  }>();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
-  const [showManual, setShowManual] = useState(false);
-  const [manualId, setManualId] = useState("");
   const [recentScans, setRecentScans] = useState<ValidatedTicket[]>([]);
 
-  // Use a ref to prevent multiple rapid scans (state updates are async)
   const isProcessing = useRef(false);
 
   const handleScan = async ({ data }: { data: string }) => {
@@ -65,36 +66,6 @@ export default function ScanTickets() {
     }
   };
 
-  const handleManualSubmit = async () => {
-    if (!manualId.trim()) return;
-
-    setLoading(true);
-    setShowManual(false);
-
-    try {
-      const response = await validateTicket(manualId.trim(), eventId);
-      const ticket = response.ticket;
-
-      if (response.success) {
-        setResult({
-          success: true,
-          message: "Ticket validated!",
-          ticket,
-        });
-        setRecentScans((prev) => [ticket, ...prev].slice(0, 10));
-      }
-    } catch (err: any) {
-      const msg = err.message || "Validation failed";
-      setResult({
-        success: false,
-        message: msg,
-      });
-    } finally {
-      setLoading(false);
-      setManualId("");
-    }
-  };
-
   const resetScan = () => {
     setScanned(false);
     setResult(null);
@@ -118,7 +89,10 @@ export default function ScanTickets() {
           <Text style={styles.permissionText}>
             To scan tickets, allow camera access in settings.
           </Text>
-          <Pressable style={styles.permissionButton} onPress={requestPermission}>
+          <Pressable
+            style={styles.permissionButton}
+            onPress={requestPermission}
+          >
             <Text style={styles.permissionButtonText}>Allow Camera</Text>
           </Pressable>
         </View>
@@ -155,24 +129,19 @@ export default function ScanTickets() {
         </CameraView>
       </View>
 
-      <View style={styles.actions}>
-        <Pressable
-          style={styles.actionButton}
-          onPress={() => setShowManual(true)}
-        >
-          <Ionicons name="keypad-outline" size={20} color={colours.textPrimary} />
-          <Text style={styles.actionButtonText}>Enter Manually</Text>
-        </Pressable>
-      </View>
-
       {recentScans.length > 0 && (
         <View style={styles.recentContainer}>
           <Text style={styles.recentTitle}>Recent Scans</Text>
           {recentScans.map((ticket) => (
             <View key={ticket.id} style={styles.recentItem}>
-              <Ionicons name="checkmark-circle" size={16} color={colours.success} />
+              <Ionicons
+                name="checkmark-circle"
+                size={16}
+                color={colours.success}
+              />
               <Text style={styles.recentText}>
-                {ticket.student.name || ticket.student.email} - {ticket.event.title}
+                {ticket.student.name || ticket.student.email} -{" "}
+                {ticket.event.title}
               </Text>
             </View>
           ))}
@@ -192,13 +161,21 @@ export default function ScanTickets() {
               <ActivityIndicator size="large" color={colours.primary} />
             ) : result?.success ? (
               <>
-                <Ionicons name="checkmark-circle" size={64} color={colours.success} />
+                <Ionicons
+                  name="checkmark-circle"
+                  size={64}
+                  color={colours.success}
+                />
                 <Text style={styles.modalTitle}>Valid Ticket</Text>
                 <Text style={styles.modalStudent}>
                   {result.ticket?.student.name || result.ticket?.student.email}
                 </Text>
-                <Text style={styles.modalEvent}>{result.ticket?.event.title}</Text>
-                <Text style={styles.modalMeta}>{result.ticket?.event.location}</Text>
+                <Text style={styles.modalEvent}>
+                  {result.ticket?.event.title}
+                </Text>
+                <Text style={styles.modalMeta}>
+                  {result.ticket?.event.location}
+                </Text>
               </>
             ) : (
               <>
@@ -210,43 +187,6 @@ export default function ScanTickets() {
             <Pressable style={styles.modalButton} onPress={resetScan}>
               <Text style={styles.modalButtonText}>Scan Another</Text>
             </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      {/* Manual Entry Modal */}
-      <Modal
-        visible={showManual}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowManual(false)}
-      >
-        <Pressable style={styles.modalBackdrop} onPress={() => setShowManual(false)}>
-          <Pressable style={styles.manualCard} onPress={() => {}}>
-            <Text style={styles.modalTitle}>Enter Ticket ID</Text>
-            <TextInput
-              style={styles.manualInput}
-              value={manualId}
-              onChangeText={setManualId}
-              placeholder="Paste or type ticket ID"
-              placeholderTextColor={colours.textMuted}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <View style={styles.manualActions}>
-              <Pressable
-                style={styles.manualCancelButton}
-                onPress={() => {
-                  setShowManual(false);
-                  setManualId("");
-                }}
-              >
-                <Text style={styles.manualCancelText}>Cancel</Text>
-              </Pressable>
-              <Pressable style={styles.manualSubmitButton} onPress={handleManualSubmit}>
-                <Text style={styles.manualSubmitText}>Validate</Text>
-              </Pressable>
-            </View>
           </Pressable>
         </Pressable>
       </Modal>
@@ -308,28 +248,6 @@ const styles = StyleSheet.create({
     borderColor: colours.primary,
     borderRadius: 16,
     backgroundColor: "transparent",
-  },
-  actions: {
-    flexDirection: "row",
-    justifyContent: "center",
-    padding: 16,
-    gap: 16,
-  },
-  actionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    backgroundColor: colours.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colours.border,
-  },
-  actionButtonText: {
-    color: colours.textPrimary,
-    fontSize: 14,
-    fontWeight: "600",
   },
   recentContainer: {
     paddingHorizontal: 20,
@@ -434,54 +352,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   modalButtonText: {
-    color: colours.textPrimary,
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  manualCard: {
-    backgroundColor: colours.surface,
-    borderRadius: 20,
-    padding: 24,
-    width: "100%",
-    maxWidth: 340,
-    borderWidth: 1,
-    borderColor: colours.border,
-  },
-  manualInput: {
-    backgroundColor: colours.background,
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 16,
-    color: colours.textPrimary,
-    borderWidth: 1,
-    borderColor: colours.border,
-    marginTop: 16,
-  },
-  manualActions: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 20,
-  },
-  manualCancelButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: "center",
-    backgroundColor: colours.surfaceElevated,
-  },
-  manualCancelText: {
-    color: colours.textSecondary,
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  manualSubmitButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: "center",
-    backgroundColor: colours.primary,
-  },
-  manualSubmitText: {
     color: colours.textPrimary,
     fontSize: 16,
     fontWeight: "600",

@@ -49,7 +49,6 @@ export default function LoginOrganisation() {
 
   const loginRequest = async (email: string, password: string) => {
     const url = `${API_URL}/auth/login-org`;
-    console.log("Calling backend:", url);
 
     const response = await fetch(url, {
       method: "POST",
