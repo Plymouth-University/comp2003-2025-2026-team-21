@@ -7,15 +7,21 @@ import { Ionicons } from "@expo/vector-icons";
 interface Props {
   activeTab: string | null;
   onTabPress: (tab: string) => void;
+  unreadMessageCount?: number;
 }
 
 const TABS = [
   { key: "events", label: "Events", icon: "calendar" as const },
   { key: "tickets", label: "Tickets", icon: "ticket" as const },
   { key: "social", label: "Social", icon: "people" as const },
+  { key: "messages", label: "Messages", icon: "chatbubble" as const },
 ];
 
-export default function BottomNavStudent({ activeTab, onTabPress }: Props) {
+export default function BottomNavStudent({
+  activeTab,
+  onTabPress,
+  unreadMessageCount = 0,
+}: Props) {
   const scalesRef = useRef<Record<string, Animated.Value>>({});
 
   const scales = useMemo(() => {
@@ -78,11 +84,21 @@ export default function BottomNavStudent({ activeTab, onTabPress }: Props) {
                 color={isActive ? colours.primary : colours.textMuted}
               />
               <Text
-                style={[styles.navButtonText, isActive && styles.navButtonTextActive]}
+                style={[
+                  styles.navButtonText,
+                  isActive && styles.navButtonTextActive,
+                ]}
               >
                 {tab.label}
               </Text>
               {isActive && <View style={styles.activeDot} />}
+              {tab.key === "messages" && unreadMessageCount > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
+                  </Text>
+                </View>
+              )}
             </Animated.View>
           </Pressable>
         );
@@ -138,5 +154,24 @@ const styles = StyleSheet.create({
     backgroundColor: colours.primary,
     position: "absolute",
     bottom: -2,
+  },
+
+  badge: {
+    position: "absolute",
+    top: 2,
+    right: 10,
+    backgroundColor: colours.primary,
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 3,
+  },
+
+  badgeText: {
+    color: "#fff",
+    fontSize: 9,
+    fontWeight: "700",
   },
 });
