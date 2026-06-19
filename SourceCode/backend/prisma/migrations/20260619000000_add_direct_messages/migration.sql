@@ -42,6 +42,7 @@ CREATE INDEX IF NOT EXISTS "Conversation_student1Id_idx" ON "Conversation"("stud
 CREATE INDEX IF NOT EXISTS "Conversation_student2Id_idx" ON "Conversation"("student2Id");
 CREATE INDEX IF NOT EXISTS "Message_conversationId_createdAt_idx" ON "Message"("conversationId", "createdAt");
 CREATE INDEX IF NOT EXISTS "Message_conversationId_read_idx" ON "Message"("conversationId", "read");
+CREATE INDEX IF NOT EXISTS "Message_senderId_idx" ON "Message"("senderId");
 
 DO $$ BEGIN
   IF NOT EXISTS (
@@ -52,6 +53,7 @@ DO $$ BEGIN
 END $$;
 
 CREATE INDEX IF NOT EXISTS "MessageReaction_messageId_idx" ON "MessageReaction"("messageId");
+CREATE INDEX IF NOT EXISTS "MessageReaction_studentId_idx" ON "MessageReaction"("studentId");
 
 -- Foreign keys
 DO $$ BEGIN

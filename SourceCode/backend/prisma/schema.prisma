@@ -184,6 +184,7 @@ model Message {
 
   @@index([conversationId, createdAt])
   @@index([conversationId, read])
+  @@index([senderId])
 }
 
 model MessageReaction {
@@ -196,4 +197,5 @@ model MessageReaction {
 
   @@unique([messageId, studentId])
   @@index([messageId])
+  @@index([studentId])
 }
