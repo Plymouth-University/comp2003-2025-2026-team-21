@@ -108,8 +108,8 @@ export const getOrCreateConversation = async (req: Request, res: Response) => {
       messages: { orderBy: { createdAt: "desc" } as const, take: 1 },
     };
 
-    const existing = await prisma.conversation.findFirst({
-      where: { student1Id, student2Id },
+    const existing = await prisma.conversation.findUnique({
+      where: { student1Id_student2Id: { student1Id, student2Id } },
       include: CONV_INCLUDE,
     });
 
@@ -155,6 +155,10 @@ export const getMessages = async (req: Request, res: Response) => {
     }
 
     const pageSize = Math.min(parseInt(limit, 10) || 30, 100);
+
+    if (cursor && isNaN(new Date(cursor).getTime())) {
+      return res.status(400).json({ message: "Invalid cursor" });
+    }
 
     const messages = await prisma.message.findMany({
       where: {

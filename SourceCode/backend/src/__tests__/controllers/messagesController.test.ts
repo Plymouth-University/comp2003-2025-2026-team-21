@@ -145,7 +145,7 @@ describe("getOrCreateConversation", () => {
     (db.follow.findFirst as jest.Mock)
       .mockResolvedValueOnce({ id: "f1" })
       .mockResolvedValueOnce({ id: "f2" });
-    (db.conversation.findFirst as jest.Mock).mockResolvedValue(null);
+    (db.conversation.findUnique as jest.Mock).mockResolvedValue(null);
     (db.conversation.create as jest.Mock).mockResolvedValue(makeConversation());
 
     const res = mockResponse();
@@ -167,7 +167,7 @@ describe("getOrCreateConversation", () => {
     (db.follow.findFirst as jest.Mock)
       .mockResolvedValueOnce({ id: "f1" })
       .mockResolvedValueOnce({ id: "f2" });
-    (db.conversation.findFirst as jest.Mock).mockResolvedValue(
+    (db.conversation.findUnique as jest.Mock).mockResolvedValue(
       makeConversation(),
     );
 
