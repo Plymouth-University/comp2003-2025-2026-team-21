@@ -8,6 +8,7 @@ import eventsRoutes from "./routes/events";
 import followRoutes from "./routes/follow";
 import notificationsRoutes from "./routes/notifications";
 import paymentsRoutes from "./routes/payments";
+import messagesRoutes from "./routes/messages";
 import { globalErrorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { startEventReminderJob } from "./jobs/eventReminders";
 
@@ -71,6 +72,11 @@ app.use("/notifications", notificationsRoutes);
  * Mount payments routes under /payments
  */
 app.use("/payments", paymentsRoutes);
+
+/**
+ * Mount messages routes under /messages
+ */
+app.use("/messages", messagesRoutes);
 
 /**
  * Simple health check endpoint.
