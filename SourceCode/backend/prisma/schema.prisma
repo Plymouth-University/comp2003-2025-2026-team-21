@@ -18,6 +18,8 @@ model Student {
   notificationsEnabled Boolean  @default(true)
   posts                Posts[]
   tickets              Ticket[]
+  conversationsAsStudent1  Conversation[]  @relation("ConvStudent1")
+  conversationsAsStudent2  Conversation[]  @relation("ConvStudent2")
 }
 
 model Organisation {
@@ -153,4 +155,45 @@ model Notification {
 
   @@index([userId, read])
   @@index([userId, createdAt])
+}
+
+model Conversation {
+  id         String    @id @default(uuid())
+  student1Id String
+  student2Id String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  student1   Student   @relation("ConvStudent1", fields: [student1Id], references: [id], onDelete: Cascade)
+  student2   Student   @relation("ConvStudent2", fields: [student2Id], references: [id], onDelete: Cascade)
+  messages   Message[]
+
+  @@unique([student1Id, student2Id])
+  @@index([student1Id])
+  @@index([student2Id])
+}
+
+model Message {
+  id             String            @id @default(uuid())
+  conversationId String
+  senderId       String
+  content        String
+  read           Boolean           @default(false)
+  createdAt      DateTime          @default(now())
+  conversation   Conversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  reactions      MessageReaction[]
+
+  @@index([conversationId, createdAt])
+  @@index([conversationId, read])
+}
+
+model MessageReaction {
+  id        String   @id @default(uuid())
+  messageId String
+  studentId String
+  emoji     String
+  createdAt DateTime @default(now())
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, studentId])
+  @@index([messageId])
 }
