@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import http from "http";
+import { initSocket } from "./socket/index";
 import authRoutes from "./routes/auth";
 import postsRoutes from "./routes/posts";
 import ticketsRoutes from "./routes/tickets";
@@ -101,7 +103,9 @@ app.use(globalErrorHandler);
  * Start server on PORT from env, else default 3001.
  */
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
+const httpServer = http.createServer(app);
+initSocket(httpServer);
+httpServer.listen(PORT, () => {
   console.log(`Backend running on port ${PORT}`);
   startEventReminderJob();
 });
