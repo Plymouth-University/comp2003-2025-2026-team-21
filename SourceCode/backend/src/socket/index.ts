@@ -2,10 +2,7 @@ import { Server } from "socket.io";
 import { Server as HttpServer } from "http";
 import jwt from "jsonwebtoken";
 import prisma from "../utils/prisma";
-import {
-  sendNotificationToUser,
-  getUserPushTokens,
-} from "../services/notifications";
+import { sendNotificationToUser } from "../services/notifications";
 
 interface JwtPayload {
   id: string;
