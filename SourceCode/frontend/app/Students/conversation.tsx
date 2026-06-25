@@ -215,8 +215,12 @@ export default function ConversationScreen() {
         ref={listRef}
         data={messages}
         keyExtractor={(item) => item.id}
-        onEndReached={loadMore}
-        onEndReachedThreshold={0.2}
+        onScroll={({ nativeEvent }) => {
+          if (nativeEvent.contentOffset.y < 80 && hasMore && !loadingMore) {
+            loadMore();
+          }
+        }}
+        scrollEventThrottle={200}
         ListHeaderComponent={
           loadingMore ? (
             <ActivityIndicator
